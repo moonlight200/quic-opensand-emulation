@@ -23,9 +23,9 @@
 #     st1(osnd-cl) and st0(osnd-st) form the network on the satellite terminal that is
 #     connected to the application client.
 
-# _setup_namespaces()
+# osnd_setup_namespaces()
 # Create the namespaces and all links within them for the emulation setup.
-function _setup_namespaces() {
+function osnd_setup_namespaces() {
 	# Add namespaces
 	sudo ip netns add osnd-cl
 	sudo ip netns add osnd-st
@@ -100,5 +100,5 @@ function _setup_namespaces() {
 
 # If script is executed directly
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
-	_setup_namespaces "$@"
+	osnd_setup_namespaces "$@"
 fi

@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# _teardown_namespaces()
+# osnd_teardown_namespaces()
 # Remove all namespaces and the components within them.
-function _teardown_namespaces() {
+function osnd_teardown_namespaces() {
 	sudo ip netns del osnd-cl
 	sudo ip netns del osnd-st
 	sudo ip netns del osnd-emu
@@ -13,6 +13,6 @@ function _teardown_namespaces() {
 
 # If script is executed directly
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
-	_teardown_namespaces "$@"
+	osnd_teardown_namespaces "$@"
 fi
 

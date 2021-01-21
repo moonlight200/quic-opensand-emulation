@@ -11,6 +11,7 @@ source "${SCRIPT_DIR}/teardown.sh"
 source "${SCRIPT_DIR}/teardown-namespaces.sh"
 source "${SCRIPT_DIR}/teardown-opensand.sh"
 source "${SCRIPT_DIR}/run-ping.sh"
+source "${SCRIPT_DIR}/run-quic.sh"
 
 # log(level, message...)
 # Log a message of the specified level to the output and the log file.
@@ -49,7 +50,7 @@ function log() {
 	esac
 
 	# Build and print log message
-	log_entry="$log_time [$level_name]: $msg"
+	local log_entry="$log_time [$level_name]: $msg"
 	echo -e "$level_color$log_entry\e[0m"
 	
 	if [ -d "$EMULATION_DIR" ]; then
@@ -57,17 +58,25 @@ function log() {
 	fi
 }
 
-function _main() {
+# error_log()
+# Pipe stderr to this function to create log messages for each line in stderr
+function error_log() {
+	while read -r err_line; do
+		log E "$err_line"
+	done < <(cat -)
+}
+
+function main() {
 	# TODO arg parse
 	emulation_start="$( date +"%Y-%m-%d-%H-%M" )"
 	EMULATION_DIR="${RESULTS_DIR}/${emulation_start}_opensand"
 	mkdir -p $EMULATION_DIR
+	# TODO update latest symlink
 
-	_setup
-	sleep 3
-	_run_ping "${EMULATION_DIR}"
-	sleep 3
-	_teardown
+	osnd_run_ping "${EMULATION_DIR}" 2> >(error_log)
+	osnd_run_quic_goodput "${EMULATION_DIR}" 2> >(error_log)
+
+	# TODO cleanup: kill tmux server (also on trap)
 }
 
-_main "$@"
+main "$@"
