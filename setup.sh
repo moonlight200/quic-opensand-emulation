@@ -20,5 +20,13 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 		echo "[$level] $msg"
 	}
 
+	export SCRIPT_VERSION="manual"
+	export SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+	set -a
+	source "${SCRIPT_DIR}/env.sh"
+	set +a
+	source "${SCRIPT_DIR}/setup-opensand.sh"
+	source "${SCRIPT_DIR}/setup-namespaces.sh"
+
 	osnd_setup "$@"
 fi

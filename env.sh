@@ -2,6 +2,8 @@
 # Environment configuration
 # Don't use ~ or $HOME as some commands are executed in a rooted sub-shell
 
+# File and directory paths
+
 QPERF_BIN="/home/beil/build-qperf/qperf"
 QPERF_CRT="/home/beil/server.crt"
 QPERF_KEY="/home/beil/server.key"
