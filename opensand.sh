@@ -1,9 +1,15 @@
 #!/bin/bash
+set -o nounset
+set -o errtrace
+set -o functrace
 
 export SCRIPT_VERSION="0.4-alpha"
 export SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
+set -o allexport
 source "${SCRIPT_DIR}/env.sh"
+set +o allexport
+
 source "${SCRIPT_DIR}/setup.sh"
 source "${SCRIPT_DIR}/setup-namespaces.sh"
 source "${SCRIPT_DIR}/setup-opensand.sh"
@@ -20,6 +26,14 @@ function log() {
 	local level="$1"
 	shift
 	local msg="$@"
+
+	if [[ "$msg" == "-" ]]; then
+		# Log each line in stdin as separate log message
+		while read -r err_line; do
+			log $level "$err_line"
+		done < <(cat -)
+		return
+	fi
 
 	local log_time="$( date --rfc-3339=seconds )"
 	local level_name="INFO"
@@ -59,28 +73,46 @@ function log() {
 	fi
 }
 
-# error_log()
-# Pipe stderr to this function to create log messages for each line in stderr
-function error_log() {
-	while read -r err_line; do
-		log E "$err_line"
-	done < <(cat -)
+function _osnd_create_emulation_dir() {
+	if [ -e "$EMULATION_DIR" ]; then
+		>&2 echo "Output directory $EMULATION_DIR already exists"
+		>&2 echo "aborting emulation"
+		exit 4
+	fi
+
+	mkdir -p "$EMULATION_DIR"
+	if [ $? -ne 0 ]; then
+		>&2 echo "Failed to create output directory $EMULATION_DIR"
+		>&2 echo "aborting emulation"
+		exit 5
+	fi
+
+	# Create 'latest' symlink
+	local latest_link="$RESULTS_DIR/latest"
+	if [ -h "$latest_link" ]; then
+		rm "$latest_link"
+	fi
+	if [ ! -e "$latest_link" ]; then
+		ln -s "$EMULATION_DIR" "$latest_link"
+	fi
 }
 
 function main() {
 	# TODO arg parse
 	emulation_start="$( date +"%Y-%m-%d-%H-%M" )"
-	EMULATION_DIR="${RESULTS_DIR}/${emulation_start}_opensand"
-	mkdir -p $EMULATION_DIR
-	# TODO update latest symlink
+	export EMULATION_DIR="${RESULTS_DIR}/${emulation_start}_opensand"
+	_osnd_create_emulation_dir
 
-	osnd_run_ping "${EMULATION_DIR}" 2> >(error_log)
-	osnd_run_quic_goodput "${EMULATION_DIR}" false 1 2> >(error_log)
-	osnd_run_quic_timing "${EMULATION_DIR}" false 2 2> >(error_log)
-	osnd_run_tcp_goodput "${EMULATION_DIR}" false 1 2> >(error_log)
-	osnd_run_tcp_timing "${EMULATION_DIR}" false 2 2> >(error_log)
+	log I "Starting Opensand satellite emulation measurements"
+
+	osnd_run_ping "${EMULATION_DIR}" 2> >(log E -)
+	osnd_run_quic_goodput "${EMULATION_DIR}" false 1 2> >(log E -)
+	osnd_run_quic_timing "${EMULATION_DIR}" false 2 2> >(log E -)
+	osnd_run_tcp_goodput "${EMULATION_DIR}" false 1 2> >(log E -)
+	osnd_run_tcp_timing "${EMULATION_DIR}" false 2 2> >(log E -)
 
 	# TODO cleanup: kill tmux server (also on trap)
+	log I "Done with all measurements"
 }
 
 main "$@"
