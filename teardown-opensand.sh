@@ -19,13 +19,6 @@ function _osnd_teardown_opensand_entity() {
 # osnd_teardown_opensand()
 # Teardown all opensand entities of the emulation.
 function osnd_teardown_opensand() {
-	declare -F log > /dev/null || function log() {
-		local level="$1"
-		local msg="$2"
-
-		echo "[$level] $msg"
-	}
-
 	log D "Disconnecting satellite terminal"
 	_osnd_teardown_opensand_entity "osnd-st" "opensand-st" "opensand-st"
 
@@ -38,5 +31,12 @@ function osnd_teardown_opensand() {
 
 # If script is executed directly
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+	declare -F log >/dev/null || function log() {
+		local level="$1"
+		local msg="$2"
+
+		echo "[$level] $msg"
+	}
+
 	osnd_teardown_opensand "$@"
 fi

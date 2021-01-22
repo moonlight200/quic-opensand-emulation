@@ -100,5 +100,12 @@ function osnd_setup_namespaces() {
 
 # If script is executed directly
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+	declare -F log >/dev/null || function log() {
+		local level="$1"
+		local msg="$2"
+
+		echo "[$level] $msg"
+	}
+
 	osnd_setup_namespaces "$@"
 fi

@@ -10,7 +10,7 @@ function _osnd_quic_measure() {
     local server_ip="$6"
 
     log I "Running qperf client"
-    sudo timeout --foreground $timeout ip netns exec osnd-cl ${QPERF_BIN} -c ${server_ip} --cc ${cc} -t ${measure_secs} > "${output_dir}/quic${run_id}_client.txt"
+    sudo timeout --foreground $timeout ip netns exec osnd-cl ${QPERF_BIN} -c ${server_ip} --cc ${cc} -t ${measure_secs} > "${output_dir}/${run_id}_client.txt"
     local status=$?
 
 	# Check for error, report if any
@@ -37,7 +37,7 @@ function _osnd_quic_server_start() {
 	tmux -L ${TMUX_SOCKET} new-session -s qperf-server -d "sudo ip netns exec osnd-sv bash"
 	sleep $TMUX_INIT_WAIT
 	tmux -L ${TMUX_SOCKET} send-keys -t qperf-server \
-		"${QPERF_BIN} -s --tls-cert ${QPERF_CRT} --tls-key ${QPERF_KEY} --cc ${cc} --listen-addr ${GW_LAN_SERVER_IP%%/*} > '${output_dir}/quic${run_id}_server.txt'" \
+		"${QPERF_BIN} -s --tls-cert ${QPERF_CRT} --tls-key ${QPERF_KEY} --cc ${cc} --listen-addr ${GW_LAN_SERVER_IP%%/*} > '${output_dir}/${run_id}_server.txt'" \
 		Enter
 }
 
@@ -74,7 +74,7 @@ function _osnd_run_quic() {
 	local timing=${3:-false}
 	local run_cnt=${4:-5}
 
-	local base_run_id=""
+	local base_run_id="quic"
 	local name_ext=""
 	local measure_secs=30
 	local timeout=40
@@ -124,7 +124,7 @@ function _osnd_run_quic() {
 	done
 }
 
-# osnd_run_quic(output_dir, pep=false, run_cnt=4)
+# osnd_run_quic_goodput(output_dir, pep=false, run_cnt=4)
 # Run QUIC goodput measurements on the emulation environment
 function osnd_run_quic_goodput() {
 	local output_dir="$1"

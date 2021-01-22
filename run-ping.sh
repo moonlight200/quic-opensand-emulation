@@ -27,13 +27,6 @@ function _osnd_ping_measure() {
 # osnd_run_ping(output_dir, run_cnt=1)
 # Run all ping measurements and place the results in output_dir.
 function osnd_run_ping() {
-	declare -F log >/dev/null || function log() {
-		local level="$1"
-		local msg="$2"
-
-		echo "[$level] $msg"
-	}
-
 	local output_dir="$1"
 	local run_cnt=${2:-1}
 
@@ -52,6 +45,13 @@ function osnd_run_ping() {
 
 # If script is executed directly
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+	declare -F log >/dev/null || function log() {
+		local level="$1"
+		local msg="$2"
+
+		echo "[$level] $msg"
+	}
+
 	if [[ "$@" ]]; then
 		osnd_run_ping "$@"
 	else
