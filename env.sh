@@ -6,6 +6,7 @@ export QPERF_BIN="/home/beil/build-qperf/qperf"
 export QPERF_CRT="/home/beil/server.crt"
 export QPERF_KEY="/home/beil/server.key"
 export OPENSAND_CONFIGS="${SCRIPT_DIR}/config"
+export NGINX_CONFIG="${SCRIPT_DIR}/config/nginx.conf"
 export RESULTS_DIR="/home/beil/out/$( hostname )"
 
 # Opensand network config

@@ -77,7 +77,7 @@ function _osnd_run_quic() {
 	local base_run_id="quic"
 	local name_ext=""
 	local measure_secs=30
-	local timeout=40
+	local timeout=45
 	local server_ip="${GW_LAN_SERVER_IP%%/*}"
 
 	if [[ "$pep" == true ]]; then

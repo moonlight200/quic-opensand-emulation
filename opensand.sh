@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export SCRIPT_VERSION="0.3-alpha"
+export SCRIPT_VERSION="0.4-alpha"
 export SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 source "${SCRIPT_DIR}/env.sh"
@@ -12,6 +12,7 @@ source "${SCRIPT_DIR}/teardown-namespaces.sh"
 source "${SCRIPT_DIR}/teardown-opensand.sh"
 source "${SCRIPT_DIR}/run-ping.sh"
 source "${SCRIPT_DIR}/run-quic.sh"
+source "${SCRIPT_DIR}/run-tcp.sh"
 
 # log(level, message...)
 # Log a message of the specified level to the output and the log file.
@@ -74,7 +75,10 @@ function main() {
 	# TODO update latest symlink
 
 	osnd_run_ping "${EMULATION_DIR}" 2> >(error_log)
-	osnd_run_quic_goodput "${EMULATION_DIR}" 2> >(error_log)
+	osnd_run_quic_goodput "${EMULATION_DIR}" false 1 2> >(error_log)
+	osnd_run_quic_timing "${EMULATION_DIR}" false 2 2> >(error_log)
+	osnd_run_tcp_goodput "${EMULATION_DIR}" false 1 2> >(error_log)
+	osnd_run_tcp_timing "${EMULATION_DIR}" false 2 2> >(error_log)
 
 	# TODO cleanup: kill tmux server (also on trap)
 }
