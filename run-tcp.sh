@@ -205,6 +205,13 @@ function osnd_run_tcp_timing() {
 
 # If script is executed directly
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+	declare -F log >/dev/null || function log() {
+		local level="$1"
+		local msg="$2"
+
+		echo "[$level] $msg"
+	}
+
 	if [[ "$@" ]]; then
 		osnd_run_tcp_goodput "$@"
 	else
