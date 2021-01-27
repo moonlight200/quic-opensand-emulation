@@ -141,11 +141,13 @@ function _osnd_create_emulation_dir() {
 
 # _osnd_run_measurements()
 function _osnd_run_measurements() {
-	osnd_run_ping "${EMULATION_DIR}"
-	osnd_run_quic_goodput "${EMULATION_DIR}" false 1
-	osnd_run_quic_timing "${EMULATION_DIR}" false 2
-	osnd_run_tcp_goodput "${EMULATION_DIR}" false 1
-	osnd_run_tcp_timing "${EMULATION_DIR}" false 2
+	#osnd_run_ping "${EMULATION_DIR}"
+	#osnd_run_quic_goodput "${EMULATION_DIR}" false 1
+	#osnd_run_quic_timing "${EMULATION_DIR}" false 2
+	#osnd_run_tcp_goodput "${EMULATION_DIR}" false 1
+	#osnd_run_tcp_timing "${EMULATION_DIR}" false 2
+	osnd_run_quic_goodput "${EMULATION_DIR}" true 1
+	osnd_run_quic_timing "${EMULATION_DIR}" true 2
 }
 
 function _main() {
