@@ -32,7 +32,7 @@ function _osnd_quic_server_start() {
 	local run_id="$2"
 	local cc="$3"
 
-	log D "Starting qperf server"
+	log I "Starting qperf server"
 	sudo ip netns exec osnd-sv killall qperf -q
 	tmux -L ${TMUX_SOCKET} new-session -s qperf-server -d "sudo ip netns exec osnd-sv bash"
 	sleep $TMUX_INIT_WAIT
@@ -43,12 +43,13 @@ function _osnd_quic_server_start() {
 
 # _osnd_quic_server_stop()
 function _osnd_quic_server_stop() {
-	log D "Stopping qperf server"
+	log I "Stopping qperf server"
+
 	tmux -L ${TMUX_SOCKET} send-keys -t qperf-server C-c
 	sleep $CMD_SHUTDOWN_WAIT
 	tmux -L ${TMUX_SOCKET} send-keys -t qperf-server C-d
 	sleep $CMD_SHUTDOWN_WAIT
-	sudo ip netns exec osnd-sv killall qperf -q
+	sudo ip netns exec osnd-sv killall $( basename $QPERF_BIN ) -q
 	tmux -L ${TMUX_SOCKET} kill-session -t qperf >/dev/null 2>&1
 }
 
@@ -59,7 +60,7 @@ function _osnd_quic_proxies_start() {
 	local cc_sat="$3"
 	local cc_st="$4"
 
-	log I "Starting QUIC proxies"
+	log I "Starting qperf proxies"
 
 	# Gateway proxy
 	log D "Starting gateway proxy"
@@ -80,7 +81,7 @@ function _osnd_quic_proxies_start() {
 
 # _osnd_quic_proxies_stop()
 function _osnd_quic_proxies_stop() {
-	log I "Stopping QUIC proxies"
+	log I "Stopping qperf proxies"
 
 	# Gateway proxy
 	log D "Stopping gateway proxy"
@@ -88,7 +89,7 @@ function _osnd_quic_proxies_stop() {
 	sleep $CMD_SHUTDOWN_WAIT
 	tmux -L ${TMUX_SOCKET} send-keys -t qperf-proxy-gw C-d
 	sleep $CMD_SHUTDOWN_WAIT
-	sudo ip netns exec osnd-gw killall qperf -q
+	sudo ip netns exec osnd-gw killall $( basename $QPERF_BIN ) -q
 	tmux -L ${TMUX_SOCKET} kill-session -t qperf-proxy-gw >/dev/null 2>&1
 
 	# Satellite terminal proxy
@@ -97,7 +98,7 @@ function _osnd_quic_proxies_stop() {
 	sleep $CMD_SHUTDOWN_WAIT
 	tmux -L ${TMUX_SOCKET} send-keys -t qperf-proxy-st C-d
 	sleep $CMD_SHUTDOWN_WAIT
-	sudo ip netns exec osnd-st killall qperf -q
+	sudo ip netns exec osnd-st killall $( basename $QPERF_BIN ) -q
 	tmux -L ${TMUX_SOCKET} kill-session -t qperf-proxy-st >/dev/null 2>&1
 }
 

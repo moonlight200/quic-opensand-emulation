@@ -1,15 +1,16 @@
 #!/bin/bash
 # Environment configuration
-# Don't use ~ or $HOME as some commands are executed in a rooted sub-shell
+# Don't use relative paths as some commands are executed in a rooted sub-shell
 
 # File and directory paths
 
-QPERF_BIN="/home/beil/build-qperf/qperf"
-QPERF_CRT="/home/beil/server.crt"
-QPERF_KEY="/home/beil/server.key"
+QPERF_BIN="$HOME/build-qperf/qperf"
+QPERF_CRT="$HOME/server.crt"
+QPERF_KEY="$HOME/server.key"
+PEPSAL_BIN="$HOME/pepsal/src/pepsal"
 OPENSAND_CONFIGS="${SCRIPT_DIR}/config"
 NGINX_CONFIG="${SCRIPT_DIR}/config/nginx.conf"
-RESULTS_DIR="/home/beil/out/$( hostname )"
+RESULTS_DIR="$HOME/out/$( hostname )"
 
 # Opensand network config
 
