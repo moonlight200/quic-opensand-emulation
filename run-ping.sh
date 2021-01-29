@@ -24,15 +24,16 @@ function _osnd_ping_measure() {
 	return $status
 }
 
-# osnd_run_ping(output_dir, run_cnt=1)
+# osnd_run_ping(output_dir, emu_env_ref, run_cnt=1)
 # Run all ping measurements and place the results in output_dir.
 function osnd_run_ping() {
 	local output_dir="$1"
-	local run_cnt=${2:-1}
+	local emu_env_ref="$2"
+	local run_cnt=${3:-1}
 
 	for i in $( seq $run_cnt ); do
 		log I "ping run $i/$run_cnt"
-		osnd_setup
+		osnd_setup $emu_env_ref
 		sleep $MEASURE_WAIT
 		_osnd_ping_measure "$output_dir" $i
 		sleep $MEASURE_WAIT
@@ -51,10 +52,11 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 
 		echo "[$level] $msg"
 	}
+	declare -A emu_env
 
 	if [[ "$@" ]]; then
-		osnd_run_ping "$@"
+		osnd_run_ping "$@" emu_env
 	else
-		osnd_run_ping "."
+		osnd_run_ping "." emu_env
 	fi
 fi

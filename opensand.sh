@@ -141,17 +141,30 @@ function _osnd_create_emulation_dir() {
 
 # _osnd_run_measurements()
 function _osnd_run_measurements() {
-	#osnd_run_ping "${EMULATION_DIR}"
+	declare -A emu_env=([orbit]="GEO" [rate]=100 [loss]=0)
+	emu_env[prime]=true
 
-	#osnd_run_quic_goodput "${EMULATION_DIR}" false 1
-	#osnd_run_quic_timing "${EMULATION_DIR}" false 2
-	#osnd_run_quic_goodput "${EMULATION_DIR}" true 1
-	#osnd_run_quic_timing "${EMULATION_DIR}" true 2
+	# Create output directory for measurements in this configuration
+	local measure_output_dir="${EMULATION_DIR}/${emu_env[orbit]}_r${emu_env[rate]}mbit_l${emu_env[loss]}"
+	mkdir -p "$measure_output_dir"
 
-	#osnd_run_tcp_goodput "${EMULATION_DIR}" false 1
-	#osnd_run_tcp_timing "${EMULATION_DIR}" false 2
-	osnd_run_tcp_goodput "${EMULATION_DIR}" true 1
-	osnd_run_tcp_timing "${EMULATION_DIR}" true 2
+	# Save configuration
+	echo -n "" > "$measure_output_dir/config.txt"
+	for config_key in "${!emu_env[@]}"; do
+		echo "${config_key}=${emu_env[$config_key]}" > "$measure_output_dir/config.txt"
+	done
+
+	osnd_run_ping "$measure_output_dir" emu_env
+
+	osnd_run_quic_goodput "$measure_output_dir" emu_env false 3
+	osnd_run_quic_timing "$measure_output_dir" emu_env false 6
+	osnd_run_quic_goodput "$measure_output_dir" emu_env true 3
+	osnd_run_quic_timing "$measure_output_dir" emu_env true 6
+
+	osnd_run_tcp_goodput "$measure_output_dir" emu_env false 3
+	osnd_run_tcp_timing "$measure_output_dir" emu_env false 6
+	osnd_run_tcp_goodput "$measure_output_dir" emu_env true 3
+	osnd_run_tcp_timing "$measure_output_dir" emu_env true 6
 }
 
 function _main() {
