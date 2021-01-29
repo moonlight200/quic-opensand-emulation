@@ -5,6 +5,7 @@
 function osnd_teardown() {
 	log I "Tearing down emulation environment"
 	osnd_teardown_opensand
+	sleep $CMD_SHUTDOWN_WAIT
 	osnd_teardown_namespaces
 	log D "Environment teared down"
 }

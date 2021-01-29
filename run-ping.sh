@@ -8,7 +8,7 @@ function _osnd_ping_measure() {
 	local max_secs=120
 
 	log I "Running ping"
-	sudo timeout --foreground $max_secs ip netns exec osnd-cl ping -n -W 8 -c 10000 -l 100 -i 0.01 ${GW_LAN_SERVER_IP%%/*} >"${output_dir}/ping.txt"
+	sudo timeout --foreground $max_secs ip netns exec osnd-cl ping -n -W 8 -c 10000 -l 100 -i 0.01 ${SV_LAN_SERVER_IP%%/*} > "${output_dir}/ping.txt"
 	local status=$?
 
 	# Check for error, report if any
@@ -24,16 +24,16 @@ function _osnd_ping_measure() {
 	return $status
 }
 
-# osnd_run_ping(output_dir, emu_env_ref, run_cnt=1)
+# osnd_run_ping(env_config_ref, output_dir, run_cnt=1)
 # Run all ping measurements and place the results in output_dir.
 function osnd_run_ping() {
-	local output_dir="$1"
-	local emu_env_ref="$2"
+	local env_config_ref=$1
+	local output_dir="$2"
 	local run_cnt=${3:-1}
 
 	for i in $( seq $run_cnt ); do
 		log I "ping run $i/$run_cnt"
-		osnd_setup $emu_env_ref
+		osnd_setup $env_config_ref
 		sleep $MEASURE_WAIT
 		_osnd_ping_measure "$output_dir" $i
 		sleep $MEASURE_WAIT
@@ -52,11 +52,17 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 
 		echo "[$level] $msg"
 	}
-	declare -A emu_env
+	declare -A env_config
+
+	export SCRIPT_VERSION="manual"
+	export SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+	set -a
+	source "${SCRIPT_DIR}/env.sh"
+	set +a
 
 	if [[ "$@" ]]; then
-		osnd_run_ping "$@" emu_env
+		osnd_run_ping env_config "$@"
 	else
-		osnd_run_ping "." emu_env
+		osnd_run_ping env_config "."
 	fi
 fi

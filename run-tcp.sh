@@ -8,7 +8,7 @@ function _osnd_iperf_measure() {
 	local timeout="$4"
 
 	log I "Running iperf client"
-	sudo timeout --foreground $timeout ip netns exec osnd-cl iperf3 -c ${GW_LAN_SERVER_IP%%/*} -p 5201 -t $measure_secs -R -J --logfile "${output_dir}/${run_id}_client.json"
+	sudo timeout --foreground $timeout ip netns exec osnd-cl iperf3 -c ${SV_LAN_SERVER_IP%%/*} -p 5201 -t $measure_secs -R -J --logfile "${output_dir}/${run_id}_client.json"
 	status=$?
 
 	# Check for error, report if any
@@ -31,7 +31,7 @@ function _osnd_curl_measure() {
 	local timeout="$3"
 
 	log I "Running curl"
-	sudo timeout --foreground $timeout ip netns exec osnd-cl curl -o /dev/null --insecure -s -v --write-out "established=%{time_connect}\nttfb=%{time_starttransfer}\n" http://${GW_LAN_SERVER_IP%%/*}/ >"${output_dir}/${run_id}_client.txt" 2>&1
+	sudo timeout --foreground $timeout ip netns exec osnd-cl curl -o /dev/null --insecure -s -v --write-out "established=%{time_connect}\nttfb=%{time_starttransfer}\n" http://${SV_LAN_SERVER_IP%%/*}/ >"${output_dir}/${run_id}_client.txt" 2>&1
 	status=$?
 
 	# Check for error, report if any
@@ -102,14 +102,14 @@ function _osnd_pepsal_proxies_start() {
 
 	# Gateway proxy
 	log D "Starting gateway proxy"
-	tmux -L ${TMUX_SOCKET} new-session -s pepsal-gw -d "sudo ip netns exec osnd-gw bash"
+	tmux -L ${TMUX_SOCKET} new-session -s pepsal-gw -d "sudo ip netns exec osnd-gwp bash"
 	sleep $TMUX_INIT_WAIT
 	# Route marked traffic to pepsal
 	tmux -L ${TMUX_SOCKET} send-keys -t pepsal-gw "ip rule add fwmark 1 lookup 100" Enter
 	tmux -L ${TMUX_SOCKET} send-keys -t pepsal-gw "ip route add local 0.0.0.0/0 dev lo table 100" Enter
 	# Mark selected traffic for processing by pepsal
-	tmux -L ${TMUX_SOCKET} send-keys -t pepsal-gw "iptables -t mangle -A PREROUTING -i br-gw -p tcp -j TPROXY --on-port 5000 --tproxy-mark 1" Enter
-	tmux -L ${TMUX_SOCKET} send-keys -t pepsal-gw "iptables -t mangle -A PREROUTING -i gw0 -p tcp -j TPROXY --on-port 5000 --tproxy-mark 1" Enter
+	tmux -L ${TMUX_SOCKET} send-keys -t pepsal-gw "iptables -t mangle -A PREROUTING -i gw1 -p tcp -j TPROXY --on-port 5000 --tproxy-mark 1" Enter
+	tmux -L ${TMUX_SOCKET} send-keys -t pepsal-gw "iptables -t mangle -A PREROUTING -i gw2 -p tcp -j TPROXY --on-port 5000 --tproxy-mark 1" Enter
 	# Start pepsal
 	tmux -L ${TMUX_SOCKET} send-keys -t pepsal-gw \
 		"${PEPSAL_BIN} -v -p 5000 -l '${output_dir}/${run_id}_proxy_gw.txt'" \
@@ -117,14 +117,14 @@ function _osnd_pepsal_proxies_start() {
 
 	# Satellite terminal proxy
 	log D "Starting satellite terminal proxy"
-	tmux -L ${TMUX_SOCKET} new-session -s pepsal-st -d "sudo ip netns exec osnd-st bash"
+	tmux -L ${TMUX_SOCKET} new-session -s pepsal-st -d "sudo ip netns exec osnd-stp bash"
 	sleep $TMUX_INIT_WAIT
 	# Route marked traffic to pepsal
 	tmux -L ${TMUX_SOCKET} send-keys -t pepsal-st "ip rule add fwmark 1 lookup 100" Enter
 	tmux -L ${TMUX_SOCKET} send-keys -t pepsal-st "ip route add local 0.0.0.0/0 dev lo table 100" Enter
 	# Mark selected traffic for processing by pepsal
-	tmux -L ${TMUX_SOCKET} send-keys -t pepsal-st "iptables -t mangle -A PREROUTING -i br-st -p tcp -j TPROXY --on-port 5000 --tproxy-mark 1" Enter
-	tmux -L ${TMUX_SOCKET} send-keys -t pepsal-st "iptables -t mangle -A PREROUTING -i st0 -p tcp -j TPROXY --on-port 5000 --tproxy-mark 1" Enter
+	tmux -L ${TMUX_SOCKET} send-keys -t pepsal-st "iptables -t mangle -A PREROUTING -i st1 -p tcp -j TPROXY --on-port 5000 --tproxy-mark 1" Enter
+	tmux -L ${TMUX_SOCKET} send-keys -t pepsal-st "iptables -t mangle -A PREROUTING -i st2 -p tcp -j TPROXY --on-port 5000 --tproxy-mark 1" Enter
 	# Start pepsal
 	tmux -L ${TMUX_SOCKET} send-keys -t pepsal-st \
 		"${PEPSAL_BIN} -v -p 5000 -l '${output_dir}/${run_id}_proxy_st.txt'" \
@@ -154,12 +154,13 @@ function _osnd_pepsal_proxies_stop() {
 	tmux -L ${TMUX_SOCKET} kill-session -t pepsal-st >/dev/null 2>&1
 }
 
-# osnd_run_tcp_goodput(output_dir, pep=false, run_cnt=4)
+# osnd_run_tcp_goodput(env_config_ref, output_dir, pep=false, run_cnt=4)
 # Run TCP goodput measurements on the emulation environment
 function osnd_run_tcp_goodput() {
-	local output_dir="$1"
-	local pep=${2:-false}
-	local run_cnt=${3:-4}
+	local env_config_ref=$1
+	local output_dir="$2"
+	local pep=${3:-false}
+	local run_cnt=${4:-4}
 
 	local base_run_id="tcp"
 	local name_ext=""
@@ -174,7 +175,7 @@ function osnd_run_tcp_goodput() {
 		local run_id="${base_run_id}_$i"
 
 		# Environment
-		osnd_setup
+		osnd_setup $env_config_ref
 		sleep $MEASURE_WAIT
 
 		# Server
@@ -201,12 +202,13 @@ function osnd_run_tcp_goodput() {
 	done
 }
 
-# osnd_run_tcp_ttfb(output_dir, pep=false, run_cnt=12)
+# osnd_run_tcp_ttfb(env_config_ref, output_dir, pep=false, run_cnt=12)
 # Run TCP timing measurements on the emulation environment
 function osnd_run_tcp_timing() {
-	local output_dir="$1"
-	local pep=${2:-false}
-	local run_cnt=${3:-12}
+	local env_config_ref=$1
+	local output_dir="$2"
+	local pep=${3:-false}
+	local run_cnt=${4:-12}
 
 	local base_run_id="tcp"
 	local name_ext=""
@@ -222,7 +224,7 @@ function osnd_run_tcp_timing() {
 		local run_id="${base_run_id}_$i"
 
 		# Environment
-		osnd_setup
+		osnd_setup $env_config_ref
 		sleep $MEASURE_WAIT
 
 		# Server
@@ -257,10 +259,17 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 
 		echo "[$level] $msg"
 	}
+	declare -A env_config
+
+	export SCRIPT_VERSION="manual"
+	export SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+	set -a
+	source "${SCRIPT_DIR}/env.sh"
+	set +a
 
 	if [[ "$@" ]]; then
-		osnd_run_tcp_goodput "$@"
+		osnd_run_tcp_goodput env_config "$@"
 	else
-		osnd_run_tcp_goodput "." 0 1
+		osnd_run_tcp_goodput env_config "." 0 1
 	fi
 fi

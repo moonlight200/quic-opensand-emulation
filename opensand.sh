@@ -141,30 +141,30 @@ function _osnd_create_emulation_dir() {
 
 # _osnd_run_measurements()
 function _osnd_run_measurements() {
-	declare -A emu_env=([orbit]="GEO" [rate]=100 [loss]=0)
-	emu_env[prime]=true
+	declare -A env_config=(['orbit']="GEO" ['rate']=100 ['loss']=0)
+	env_config['prime']=2
 
 	# Create output directory for measurements in this configuration
-	local measure_output_dir="${EMULATION_DIR}/${emu_env[orbit]}_r${emu_env[rate]}mbit_l${emu_env[loss]}"
+	local measure_output_dir="${EMULATION_DIR}/${env_config['orbit']}_r${env_config['rate']}mbit_l${env_config['loss']}"
 	mkdir -p "$measure_output_dir"
 
 	# Save configuration
 	echo -n "" > "$measure_output_dir/config.txt"
-	for config_key in "${!emu_env[@]}"; do
-		echo "${config_key}=${emu_env[$config_key]}" > "$measure_output_dir/config.txt"
+	for config_key in "${!env_config[@]}"; do
+		echo "${config_key}=${env_config[$config_key]}" >> "$measure_output_dir/config.txt"
 	done
 
-	osnd_run_ping "$measure_output_dir" emu_env
+	osnd_run_ping env_config "$measure_output_dir"
 
-	osnd_run_quic_goodput "$measure_output_dir" emu_env false 3
-	osnd_run_quic_timing "$measure_output_dir" emu_env false 6
-	osnd_run_quic_goodput "$measure_output_dir" emu_env true 3
-	osnd_run_quic_timing "$measure_output_dir" emu_env true 6
+	osnd_run_quic_goodput env_config "$measure_output_dir" false 1
+	osnd_run_quic_timing env_config "$measure_output_dir" false 2
+	osnd_run_quic_goodput env_config "$measure_output_dir" true 1
+	osnd_run_quic_timing env_config "$measure_output_dir" true 2
 
-	osnd_run_tcp_goodput "$measure_output_dir" emu_env false 3
-	osnd_run_tcp_timing "$measure_output_dir" emu_env false 6
-	osnd_run_tcp_goodput "$measure_output_dir" emu_env true 3
-	osnd_run_tcp_timing "$measure_output_dir" emu_env true 6
+	osnd_run_tcp_goodput env_config "$measure_output_dir" false 1
+	osnd_run_tcp_timing env_config "$measure_output_dir" false 2
+	osnd_run_tcp_goodput env_config "$measure_output_dir" true 1
+	osnd_run_tcp_timing env_config "$measure_output_dir" true 2
 }
 
 function _main() {
@@ -178,7 +178,7 @@ function _main() {
 
 	log I "Starting Opensand satellite emulation measurements"
 	trap _osnd_abort_measurements EXIT
-	trap _osnd_int SIGINT
+	trap _osnd_interrupt_measurement SIGINT
 	_osnd_run_measurements 2> >(log E -)
 	trap - SIGINT
 	trap - EXIT

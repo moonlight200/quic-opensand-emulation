@@ -4,10 +4,12 @@
 # Remove all namespaces and the components within them.
 function osnd_teardown_namespaces() {
 	sudo ip netns del osnd-cl
+	sudo ip netns del osnd-stp
 	sudo ip netns del osnd-st
 	sudo ip netns del osnd-emu
 	sudo ip netns del osnd-sat
 	sudo ip netns del osnd-gw
+	sudo ip netns del osnd-gwp
 	sudo ip netns del osnd-sv
 }
 
