@@ -32,7 +32,7 @@ function osnd_run_ping() {
 	local run_cnt=${3:-1}
 
 	for i in $( seq $run_cnt ); do
-		log I "ping run $i/$run_cnt"
+		log I "Ping run $i/$run_cnt"
 		osnd_setup $env_config_ref
 		sleep $MEASURE_WAIT
 		_osnd_ping_measure "$output_dir" $i

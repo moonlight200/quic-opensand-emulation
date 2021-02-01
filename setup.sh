@@ -41,13 +41,15 @@ function osnd_setup() {
 	local cc_gw="${env_config_ref['cc_gw']:-reno}"
 	local cc_sv="${env_config_ref['cc_sv']:-reno}"
 	local prime="${env_config_ref['prime']:-4}"
+	local orbit="${env_config_ref['orbit']:-GEO}"
+	local attenuation="${env_config_ref['attenuation']:-0}"
 
 	log I "Setting up emulation environment"
 
 	osnd_setup_namespaces
 	_osnd_configure_cc "$cc_cl" "$cc_st" "$cc_emu" "$cc_gw" "$cc_sv"
 	sleep 1
-	osnd_setup_opensand
+	osnd_setup_opensand "$orbit" "$attenuation"
 	sleep 1
 	if [[ "$prime" -gt 0 ]]; then
 		_osnd_prime_env $prime
