@@ -77,6 +77,11 @@ function log() {
 function _osnd_cleanup() {
     # Ensure all tmux sessions are closed
 	tmux -L ${TMUX_SOCKET} kill-server &> /dev/null
+
+	# Remove temporary directory
+	if [ -e "$OSND_TMP" ]; then
+		rm -rf "$OSND_TMP" &> /dev/null
+	fi
 }
 
 # _osnd_abort_measurements()
@@ -116,8 +121,8 @@ function _osnd_check_running_emulation() {
     done
 }
 
-# _osnd_create_emulation_dir()
-function _osnd_create_emulation_dir() {
+# _osnd_create_emulation_output_dir()
+function _osnd_create_emulation_output_dir() {
 	if [ -e "$EMULATION_DIR" ]; then
 		>&2 echo "Output directory $EMULATION_DIR already exists"
 		exit 4
@@ -139,6 +144,17 @@ function _osnd_create_emulation_dir() {
 	fi
 }
 
+# _osnd_create_emulation_tmp_dir()
+function _osnd_create_emulation_tmp_dir() {
+	local tmp_dir=$( mktemp -p --tmpdir opensand.XXXXXX )
+	if [ "$?" -ne 0 ]; then
+		>&2 echo "Failed to create temporary directory"
+		exit 6
+	fi
+
+	export OSND_TMP="$tmp_dir"
+}
+
 # _osnd_run_measurements()
 function _osnd_run_measurements() {
 	declare -A env_config=(['orbit']="GEO" ['rate']=100 ['loss']=0)
@@ -149,7 +165,7 @@ function _osnd_run_measurements() {
 	mkdir -p "$measure_output_dir"
 
 	# Save configuration
-	echo -n "" > "$measure_output_dir/config.txt"
+	echo "script_version=${SCRIPT_VERSION}" > "$measure_output_dir/config.txt"
 	for config_key in "${!env_config[@]}"; do
 		echo "${config_key}=${env_config[$config_key]}" >> "$measure_output_dir/config.txt"
 	done
@@ -174,7 +190,8 @@ function _main() {
 
 	emulation_start="$( date +"%Y-%m-%d-%H-%M" )"
 	export EMULATION_DIR="${RESULTS_DIR}/${emulation_start}_opensand"
-	_osnd_create_emulation_dir
+	_osnd_create_emulation_output_dir
+	_osnd_create_emulation_tmp_dir
 
 	log I "Starting Opensand satellite emulation measurements"
 	trap _osnd_abort_measurements EXIT

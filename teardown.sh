@@ -28,4 +28,8 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 	source "${SCRIPT_DIR}/teardown-namespaces.sh"
 
 	osnd_teardown "$@"
+
+	if [ -e "$OSND_TMP" ]; then
+		rm -rf "$OSND_TMP"
+	fi
 fi
