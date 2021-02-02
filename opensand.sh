@@ -102,7 +102,6 @@ function _osnd_interrupt_measurements() {
 # _osnd_check_running_emulation()
 function _osnd_check_running_emulation() {
 	# Check for running tmux sessions
-
 	if [ ! tmux -L ${TMUX_SOCKET} list-sessions ] &>/dev/null; then
 		echo >&2 "Active tmux sessions found!"
 		echo >&2 "Another emulation might already be running, or this is a leftover of a previous run."
@@ -150,7 +149,7 @@ function _osnd_create_emulation_output_dir() {
 function _osnd_create_emulation_tmp_dir() {
 	log D "Creating temporary directory"
 
-	local tmp_dir=$( mktemp -d --tmpdir opensand.XXXXXX )
+	local tmp_dir=$(mktemp -d --tmpdir opensand.XXXXXX)
 	if [ "$?" -ne 0 ]; then
 		echo >&2 "Failed to create temporary directory"
 		exit 6

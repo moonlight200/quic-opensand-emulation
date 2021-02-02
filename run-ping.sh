@@ -8,7 +8,7 @@ function _osnd_ping_measure() {
 	local max_secs=120
 
 	log I "Running ping"
-	sudo timeout --foreground $max_secs ip netns exec osnd-cl ping -n -W 8 -c 10000 -l 100 -i 0.01 ${SV_LAN_SERVER_IP%%/*} > "${output_dir}/ping.txt"
+	sudo timeout --foreground $max_secs ip netns exec osnd-cl ping -n -W 8 -c 10000 -l 100 -i 0.01 ${SV_LAN_SERVER_IP%%/*} >"${output_dir}/ping.txt"
 	local status=$?
 
 	# Check for error, report if any
@@ -31,7 +31,7 @@ function osnd_run_ping() {
 	local output_dir="$2"
 	local run_cnt=${3:-1}
 
-	for i in $( seq $run_cnt ); do
+	for i in $(seq $run_cnt); do
 		log I "Ping run $i/$run_cnt"
 		osnd_setup $env_config_ref
 		sleep $MEASURE_WAIT
@@ -55,7 +55,7 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 	declare -A env_config
 
 	export SCRIPT_VERSION="manual"
-	export SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+	export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 	set -a
 	source "${SCRIPT_DIR}/env.sh"
 	set +a

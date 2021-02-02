@@ -1,14 +1,15 @@
 #!/bin/bash
 
-# _osnd_iperf_measure(output_dir, run_id, measure_secs, timeout)
+# _osnd_iperf_measure(output_dir, run_id, cc, measure_secs, timeout)
 function _osnd_iperf_measure() {
 	local output_dir="$1"
 	local run_id="$2"
-	local measure_secs="$3"
-	local timeout="$4"
+	local cc="$3"
+	local measure_secs="$4"
+	local timeout="$5"
 
 	log I "Running iperf client"
-	sudo timeout --foreground $timeout ip netns exec osnd-cl iperf3 -c ${SV_LAN_SERVER_IP%%/*} -p 5201 -t $measure_secs -R -J --logfile "${output_dir}/${run_id}_client.json"
+	sudo timeout --foreground $timeout ip netns exec osnd-cl iperf3 -c ${SV_LAN_SERVER_IP%%/*} -p 5201 -t $measure_secs -C "$cc" -R -J --logfile "${output_dir}/${run_id}_client.json"
 	status=$?
 
 	# Check for error, report if any
@@ -141,7 +142,7 @@ function _osnd_pepsal_proxies_stop() {
 	sleep $CMD_SHUTDOWN_WAIT
 	tmux -L ${TMUX_SOCKET} send-keys -t pepsal-gw C-d
 	sleep $CMD_SHUTDOWN_WAIT
-	sudo ip netns exec osnd-gw killall $( basename $PEPSAL_BIN ) -q
+	sudo ip netns exec osnd-gw killall $(basename $PEPSAL_BIN) -q
 	tmux -L ${TMUX_SOCKET} kill-session -t pepsal-gw >/dev/null 2>&1
 
 	# Satellite terminal proxy
@@ -150,18 +151,19 @@ function _osnd_pepsal_proxies_stop() {
 	sleep $CMD_SHUTDOWN_WAIT
 	tmux -L ${TMUX_SOCKET} send-keys -t pepsal-st C-d
 	sleep $CMD_SHUTDOWN_WAIT
-	sudo ip netns exec osnd-st killall $( basename $PEPSAL_BIN ) -q
+	sudo ip netns exec osnd-st killall $(basename $PEPSAL_BIN) -q
 	tmux -L ${TMUX_SOCKET} kill-session -t pepsal-st >/dev/null 2>&1
 }
 
-# osnd_run_tcp_goodput(env_config_ref, output_dir, pep=false, run_cnt=4)
+# osnd_run_tcp_goodput(env_config_name, output_dir, pep=false, run_cnt=4)
 # Run TCP goodput measurements on the emulation environment
 function osnd_run_tcp_goodput() {
-	local env_config_ref=$1
+	local env_config_name=$1
 	local output_dir="$2"
 	local pep=${3:-false}
 	local run_cnt=${4:-4}
 
+	local -n env_config_ref=$env_config_name
 	local base_run_id="tcp"
 	local name_ext=""
 
@@ -175,7 +177,7 @@ function osnd_run_tcp_goodput() {
 		local run_id="${base_run_id}_$i"
 
 		# Environment
-		osnd_setup $env_config_ref
+		osnd_setup $env_config_name
 		sleep $MEASURE_WAIT
 
 		# Server
@@ -189,7 +191,7 @@ function osnd_run_tcp_goodput() {
 		fi
 
 		# Client
-		_osnd_iperf_measure "$output_dir" "$run_id" 30 45
+		_osnd_iperf_measure "$output_dir" "$run_id" "${env_config_ref['cc_cl']:-reno}" 30 45
 
 		# Cleanup
 		if [[ "$pep" == true ]]; then
@@ -202,10 +204,10 @@ function osnd_run_tcp_goodput() {
 	done
 }
 
-# osnd_run_tcp_ttfb(env_config_ref, output_dir, pep=false, run_cnt=12)
+# osnd_run_tcp_ttfb(env_config_name, output_dir, pep=false, run_cnt=12)
 # Run TCP timing measurements on the emulation environment
 function osnd_run_tcp_timing() {
-	local env_config_ref=$1
+	local env_config_name=$1
 	local output_dir="$2"
 	local pep=${3:-false}
 	local run_cnt=${4:-12}
@@ -224,7 +226,7 @@ function osnd_run_tcp_timing() {
 		local run_id="${base_run_id}_$i"
 
 		# Environment
-		osnd_setup $env_config_ref
+		osnd_setup $env_config_name
 		sleep $MEASURE_WAIT
 
 		# Server
@@ -262,7 +264,7 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 	declare -A env_config
 
 	export SCRIPT_VERSION="manual"
-	export SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+	export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 	set -a
 	source "${SCRIPT_DIR}/env.sh"
 	set +a

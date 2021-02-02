@@ -24,4 +24,3 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 
 	osnd_teardown_namespaces "$@"
 fi
-

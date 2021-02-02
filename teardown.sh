@@ -20,7 +20,7 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 	}
 
 	export SCRIPT_VERSION="manual"
-	export SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+	export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 	set -a
 	source "${SCRIPT_DIR}/env.sh"
 	set +a

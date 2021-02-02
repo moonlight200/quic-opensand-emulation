@@ -10,7 +10,7 @@ QPERF_KEY="$HOME/server.key"
 PEPSAL_BIN="$HOME/pepsal/src/pepsal"
 OPENSAND_CONFIGS="${SCRIPT_DIR}/config"
 NGINX_CONFIG="${SCRIPT_DIR}/config/nginx.conf"
-RESULTS_DIR="$HOME/out/$( hostname )"
+RESULTS_DIR="$HOME/out/$(hostname)"
 
 # Opensand network config
 

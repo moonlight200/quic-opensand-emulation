@@ -14,7 +14,7 @@ function _osnd_teardown_opensand_entity() {
 	tmux -L ${TMUX_SOCKET} send-keys -t ${session} C-d
 	sleep $CMD_SHUTDOWN_WAIT
 	sudo ip netns exec ${namespace} killall ${binary} -q
-	tmux -L ${TMUX_SOCKET} kill-session -t ${session} > /dev/null 2>&1
+	tmux -L ${TMUX_SOCKET} kill-session -t ${session} >/dev/null 2>&1
 	rm -rf "${OSND_TMP}/${config_name}"
 }
 

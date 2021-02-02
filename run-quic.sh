@@ -49,15 +49,15 @@ function _osnd_quic_server_stop() {
 	sleep $CMD_SHUTDOWN_WAIT
 	tmux -L ${TMUX_SOCKET} send-keys -t qperf-server C-d
 	sleep $CMD_SHUTDOWN_WAIT
-	sudo ip netns exec osnd-sv killall $( basename $QPERF_BIN ) -q
+	sudo ip netns exec osnd-sv killall $(basename $QPERF_BIN) -q
 	tmux -L ${TMUX_SOCKET} kill-session -t qperf >/dev/null 2>&1
 }
 
-# _osnd_quic_proxies_start(output_dir, run_id, cc_sat, cc_st)
+# _osnd_quic_proxies_start(output_dir, run_id, cc_gw, cc_st)
 function _osnd_quic_proxies_start() {
 	local output_dir="$1"
 	local run_id="$2"
-	local cc_sat="$3"
+	local cc_gw="$3"
 	local cc_st="$4"
 
 	log I "Starting qperf proxies"
@@ -67,7 +67,7 @@ function _osnd_quic_proxies_start() {
 	tmux -L ${TMUX_SOCKET} new-session -s qperf-proxy-gw -d "sudo ip netns exec osnd-gwp bash"
 	sleep $TMUX_INIT_WAIT
 	tmux -L ${TMUX_SOCKET} send-keys -t qperf-proxy-gw \
-		"${QPERF_BIN} -P ${SV_LAN_SERVER_IP%%/*} --tls-cert ${QPERF_CRT} --tls-key ${QPERF_KEY} --cc ${cc_sat} --listen-addr ${GW_LAN_PROXY_IP%%/*} > '${output_dir}/${run_id}_proxy_gw.txt'" \
+		"${QPERF_BIN} -P ${SV_LAN_SERVER_IP%%/*} --tls-cert ${QPERF_CRT} --tls-key ${QPERF_KEY} --cc ${cc_gw} --listen-addr ${GW_LAN_PROXY_IP%%/*} > '${output_dir}/${run_id}_proxy_gw.txt'" \
 		Enter
 
 	# Satellite terminal proxy
@@ -89,7 +89,7 @@ function _osnd_quic_proxies_stop() {
 	sleep $CMD_SHUTDOWN_WAIT
 	tmux -L ${TMUX_SOCKET} send-keys -t qperf-proxy-gw C-d
 	sleep $CMD_SHUTDOWN_WAIT
-	sudo ip netns exec osnd-gw killall $( basename $QPERF_BIN ) -q
+	sudo ip netns exec osnd-gw killall $(basename $QPERF_BIN) -q
 	tmux -L ${TMUX_SOCKET} kill-session -t qperf-proxy-gw >/dev/null 2>&1
 
 	# Satellite terminal proxy
@@ -98,18 +98,19 @@ function _osnd_quic_proxies_stop() {
 	sleep $CMD_SHUTDOWN_WAIT
 	tmux -L ${TMUX_SOCKET} send-keys -t qperf-proxy-st C-d
 	sleep $CMD_SHUTDOWN_WAIT
-	sudo ip netns exec osnd-st killall $( basename $QPERF_BIN ) -q
+	sudo ip netns exec osnd-st killall $(basename $QPERF_BIN) -q
 	tmux -L ${TMUX_SOCKET} kill-session -t qperf-proxy-st >/dev/null 2>&1
 }
 
-# _osnd_run_quic(env_config_ref, output_dir, pep=false, timing=false, run_cnt=5)
+# _osnd_run_quic(env_config_name, output_dir, pep=false, timing=false, run_cnt=5)
 function _osnd_run_quic() {
-	local env_config_ref=$1
+	local env_config_name=$1
 	local output_dir="$2"
 	local pep=${3:-false}
 	local timing=${4:-false}
 	local run_cnt=${5:-5}
 
+	local -n env_config_ref=$env_config_name
 	local base_run_id="quic"
 	local name_ext=""
 	local measure_secs=30
@@ -133,21 +134,21 @@ function _osnd_run_quic() {
 		local run_id="${base_run_id}_$i"
 
 		# Environment
-		osnd_setup $env_config_ref
+		osnd_setup $env_config_name
 		sleep $MEASURE_WAIT
 
 		# Server
-		_osnd_quic_server_start "$output_dir" "$run_id" "reno" "reno"
+		_osnd_quic_server_start "$output_dir" "$run_id" "${env_config_ref['cc_sv']:-reno}"
 		sleep $MEASURE_WAIT
 
 		# Proxy
 		if [[ "$pep" == true ]]; then
-			_osnd_quic_proxies_start "$output_dir" "$run_id" "reno" "reno"
+			_osnd_quic_proxies_start "$output_dir" "$run_id" "${env_config_ref['cc_gw']:-reno}" "${env_config_ref['cc_st']:-reno}"
 			sleep $MEASURE_WAIT
 		fi
 
 		# Client
-		_osnd_quic_measure "$output_dir" "$run_id" "reno" $measure_secs $timeout "$server_ip"
+		_osnd_quic_measure "$output_dir" "$run_id" "${env_config_ref['cc_cl']:-reno}" $measure_secs $timeout "$server_ip"
 
 		# Cleanup
 		if [[ "$pep" == true ]]; then
@@ -160,26 +161,26 @@ function _osnd_run_quic() {
 	done
 }
 
-# osnd_run_quic_goodput(env_config_ref, output_dir, pep=false, run_cnt=4)
+# osnd_run_quic_goodput(env_config_name, output_dir, pep=false, run_cnt=4)
 # Run QUIC goodput measurements on the emulation environment
 function osnd_run_quic_goodput() {
-	local env_config_ref=$1
+	local env_config_name=$1
 	local output_dir="$2"
 	local pep=${3:-false}
 	local run_cnt=${4:-4}
 
-	_osnd_run_quic $env_config_ref "$output_dir" $pep false $run_cnt
+	_osnd_run_quic $env_config_name "$output_dir" $pep false $run_cnt
 }
 
-# osnd_run_quic_ttfb(env_config_ref, output_dir, pep=false, run_cnt=12)
+# osnd_run_quic_ttfb(env_config_name, output_dir, pep=false, run_cnt=12)
 # Run QUIC timing measurements on the emulation environment
 function osnd_run_quic_timing() {
-	local env_config_ref=$1
+	local env_config_name=$1
 	local output_dir="$2"
 	local pep=${3:-false}
 	local run_cnt=${4:-12}
 
-	_osnd_run_quic $env_config_ref "$output_dir" $pep true $run_cnt
+	_osnd_run_quic $env_config_name "$output_dir" $pep true $run_cnt
 }
 
 # If script is executed directly
@@ -193,7 +194,7 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 	declare -A env_config
 
 	export SCRIPT_VERSION="manual"
-	export SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+	export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 	set -a
 	source "${SCRIPT_DIR}/env.sh"
 	set +a

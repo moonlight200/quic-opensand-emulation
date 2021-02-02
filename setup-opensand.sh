@@ -45,9 +45,9 @@ function _osnd_configure_opensand_attenuation() {
 
 	# Configure attenuation
 	xmlstarlet ed -L -d "//@attenuation_value" \
-				-s "configuration/ideal/ideal_attenuations/ideal_attenuation[@link='up']" -t 'attr' -n 'attenuation_value' -v "$attenuation" \
-				-s "configuration/ideal/ideal_attenuations/ideal_attenuation[@link='down']" -t 'attr' -n 'attenuation_value' -v "$attenuation" \
-				"${OSND_TMP}/config_st/plugins/ideal.conf"
+		-s "configuration/ideal/ideal_attenuations/ideal_attenuation[@link='up']" -t 'attr' -n 'attenuation_value' -v "$attenuation" \
+		-s "configuration/ideal/ideal_attenuations/ideal_attenuation[@link='down']" -t 'attr' -n 'attenuation_value' -v "$attenuation" \
+		"${OSND_TMP}/config_st/plugins/ideal.conf"
 }
 
 # osnd_setup_opensand(orbit, attenuation)
