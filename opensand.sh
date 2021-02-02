@@ -173,17 +173,20 @@ function _osnd_exec_measurement_on_config() {
 		echo "${config_key}=${config_ref[$config_key]}" >>"$measure_output_dir/config.txt"
 	done
 
+	local run_cnt=${config_ref['runs']:-1}
+	local run_timing_cnt=${config_ref['timing_runs']:-2}
+
 	osnd_run_ping "$config_name" "$measure_output_dir"
 
-	osnd_run_quic_goodput "$config_name" "$measure_output_dir" false 1
-	osnd_run_quic_timing "$config_name" "$measure_output_dir" false 2
-	osnd_run_quic_goodput "$config_name" "$measure_output_dir" true 1
-	osnd_run_quic_timing "$config_name" "$measure_output_dir" true 2
+	osnd_run_quic_goodput "$config_name" "$measure_output_dir" false $run_cnt
+	osnd_run_quic_timing "$config_name" "$measure_output_dir" false $run_timing_cnt
+	osnd_run_quic_goodput "$config_name" "$measure_output_dir" true $run_cnt
+	osnd_run_quic_timing "$config_name" "$measure_output_dir" true $run_timing_cnt
 
-	osnd_run_tcp_goodput "$config_name" "$measure_output_dir" false 1
-	osnd_run_tcp_timing "$config_name" "$measure_output_dir" false 2
-	osnd_run_tcp_goodput "$config_name" "$measure_output_dir" true 1
-	osnd_run_tcp_timing "$config_name" "$measure_output_dir" true 2
+	osnd_run_tcp_goodput "$config_name" "$measure_output_dir" false $run_cnt
+	osnd_run_tcp_timing "$config_name" "$measure_output_dir" false $run_timing_cnt
+	osnd_run_tcp_goodput "$config_name" "$measure_output_dir" true $run_cnt
+	osnd_run_tcp_timing "$config_name" "$measure_output_dir" true $run_timing_cnt
 }
 
 # _osnd_run_measurements()
@@ -221,7 +224,7 @@ function _osnd_run_measurements() {
 function _main() {
 	# TODO arg parse
 	declare -a orbits=("GEO" "MEO" "LEO")
-	declare -a attenuations=(0 5 10)
+	declare -a attenuations=(0)
 
 	_osnd_check_running_emulation
 
