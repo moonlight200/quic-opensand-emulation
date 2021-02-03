@@ -9,7 +9,9 @@ function _osnd_iperf_measure() {
 	local timeout="$5"
 
 	log I "Running iperf client"
-	sudo timeout --foreground $timeout ip netns exec osnd-cl /usr/bin/iperf3 -c ${SV_LAN_SERVER_IP%%/*} -p 5201 -t $measure_secs -C "$cc" -R -J --logfile "${output_dir}/${run_id}_client.json"
+	sudo timeout --foreground $timeout \
+		ip netns exec osnd-cl \
+		${IPERF_BIN} -c ${SV_LAN_SERVER_IP%%/*} -p 5201 -t $measure_secs -C "$cc" -R -J --logfile "${output_dir}/${run_id}_client.json"
 	status=$?
 
 	# Check for error, report if any
@@ -32,7 +34,9 @@ function _osnd_curl_measure() {
 	local timeout="$3"
 
 	log I "Running curl"
-	sudo timeout --foreground $timeout ip netns exec osnd-cl curl -o /dev/null --insecure -s -v --write-out "established=%{time_connect}\nttfb=%{time_starttransfer}\n" http://${SV_LAN_SERVER_IP%%/*}/ >"${output_dir}/${run_id}_client.txt" 2>&1
+	sudo timeout --foreground $timeout \
+		ip netns exec osnd-cl \
+		curl -o /dev/null --insecure -s -v --write-out "established=%{time_connect}\nttfb=%{time_starttransfer}\n" http://${SV_LAN_SERVER_IP%%/*}/ >"${output_dir}/${run_id}_client.txt" 2>&1
 	status=$?
 
 	# Check for error, report if any
@@ -54,10 +58,10 @@ function _osnd_iperf_server_start() {
 	local run_id="$2"
 
 	log I "Starting iperf server"
-	sudo ip netns exec osnd-sv killall iperf3 -q
+	sudo ip netns exec osnd-sv killall $(basename $IPERF_BIN) -q
 	tmux -L ${TMUX_SOCKET} new-session -s iperf -d "sudo ip netns exec osnd-sv bash"
 	sleep $TMUX_INIT_WAIT
-	tmux -L ${TMUX_SOCKET} send-keys -t iperf "iperf3 -s -p 5201 -J --logfile '${output_dir}/${run_id}_server.json'" Enter
+	tmux -L ${TMUX_SOCKET} send-keys -t iperf "${IPERF_BIN} -s -p 5201 -J --logfile '${output_dir}/${run_id}_server.json'" Enter
 }
 
 # _osnd_iperf_server_stop()
@@ -67,7 +71,7 @@ function _osnd_iperf_server_stop() {
 	sleep $CMD_SHUTDOWN_WAIT
 	tmux -L ${TMUX_SOCKET} send-keys -t iperf C-d
 	sleep $CMD_SHUTDOWN_WAIT
-	sudo ip netns exec osnd-sv killall iperf3 -q
+	sudo ip netns exec osnd-sv killall $(basename $IPERF_BIN) -q
 	tmux -L ${TMUX_SOCKET} kill-session -t iperf >/dev/null 2>&1
 }
 
