@@ -209,8 +209,8 @@ function _osnd_run_measurements() {
 
 			env_config['orbit']="$orbit"
 			env_config['attenuation']="$attenuation"
-			env_config['prime']=4
-			env_config['runs']=1
+			env_config['prime']=10
+			env_config['runs']=5
 			env_config['timing_runs']=2
 
 			_osnd_exec_measurement_on_config env_config

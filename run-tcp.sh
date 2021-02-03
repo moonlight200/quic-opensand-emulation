@@ -9,7 +9,7 @@ function _osnd_iperf_measure() {
 	local timeout="$5"
 
 	log I "Running iperf client"
-	sudo timeout --foreground $timeout ip netns exec osnd-cl iperf3 -c ${SV_LAN_SERVER_IP%%/*} -p 5201 -t $measure_secs -C "$cc" -R -J --logfile "${output_dir}/${run_id}_client.json"
+	sudo timeout --foreground $timeout ip netns exec osnd-cl /usr/bin/iperf3 -c ${SV_LAN_SERVER_IP%%/*} -p 5201 -t $measure_secs -C "$cc" -R -J --logfile "${output_dir}/${run_id}_client.json"
 	status=$?
 
 	# Check for error, report if any
