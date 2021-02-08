@@ -9,8 +9,13 @@ function _osnd_quic_measure() {
 	local timeout="$5"
 	local server_ip="$6"
 
+	local measure_opt="-t ${measure_secs}"
+	if [[ "$measure_secs" -lt 0 ]]; then
+		measure_opt="-e"
+	fi
+
 	log I "Running qperf client"
-	sudo timeout --foreground $timeout ip netns exec osnd-cl ${QPERF_BIN} -c ${server_ip} --cc ${cc} -t ${measure_secs} >"${output_dir}/${run_id}_client.txt"
+	sudo timeout --foreground $timeout ip netns exec osnd-cl ${QPERF_BIN} -c ${server_ip} --cc ${cc} $measure_opt >"${output_dir}/${run_id}_client.txt"
 	local status=$?
 
 	# Check for error, report if any
@@ -125,8 +130,8 @@ function _osnd_run_quic() {
 	if [[ "$timing" == true ]]; then
 		base_run_id="${base_run_id}_ttfb"
 		name_ext="${name_ext} timing"
-		measure_secs=1
-		timeout=8
+		measure_secs=-1
+		timeout=4
 	fi
 
 	for i in $(seq $run_cnt); do

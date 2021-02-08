@@ -19,6 +19,7 @@ source "${SCRIPT_DIR}/teardown-opensand.sh"
 source "${SCRIPT_DIR}/run-ping.sh"
 source "${SCRIPT_DIR}/run-quic.sh"
 source "${SCRIPT_DIR}/run-tcp.sh"
+source "${SCRIPT_DIR}/stats.sh"
 
 # log(level, message...)
 # Log a message of the specified level to the output and the log file.
@@ -38,10 +39,16 @@ function log() {
 	local log_time="$(date --rfc-3339=seconds)"
 	local level_name="INFO"
 	local level_color="\e[0m"
+	local visible=true
 	case $level in
 	D | d)
 		level_name="DEBUG"
 		level_color="\e[2m"
+		;;
+	S | s)
+		level_name="STAT"
+		level_color="\e[34m"
+		visible=$show_stats
 		;;
 	I | i)
 		level_name="INFO"
@@ -66,7 +73,9 @@ function log() {
 
 	# Build and print log message
 	local log_entry="$log_time [$level_name]: $msg"
-	echo -e "$level_color$log_entry\e[0m"
+	if [[ "$visible" == true ]]; then
+		echo -e "$level_color$log_entry\e[0m"
+	fi
 
 	if [ -d "$EMULATION_DIR" ]; then
 		echo "$log_entry" >>"$EMULATION_DIR/opensand.log"
@@ -88,6 +97,7 @@ function _osnd_cleanup() {
 # Trap function executed on the EXIT trap during active measurements.
 function _osnd_abort_measurements() {
 	log E "Aborting measurements"
+	kill %1 2>/dev/null
 	osnd_teardown 2>/dev/null
 	_osnd_cleanup
 }
@@ -209,9 +219,9 @@ function _osnd_run_measurements() {
 
 			env_config['orbit']="$orbit"
 			env_config['attenuation']="$attenuation"
-			env_config['prime']=10
-			env_config['runs']=5
-			env_config['timing_runs']=2
+			env_config['prime']=0
+			env_config['runs']=1
+			env_config['timing_runs']=4
 
 			_osnd_exec_measurement_on_config env_config
 
@@ -221,10 +231,16 @@ function _osnd_run_measurements() {
 	done
 }
 
-function _main() {
+function _osnd_parse_args() {
+	show_stats=false
 	# TODO arg parse
-	declare -a orbits=("GEO" "MEO" "LEO")
+}
+
+function _main() {
+	declare -a orbits=("GEO")
 	declare -a attenuations=(0)
+
+	_osnd_parse_args "$@"
 
 	_osnd_check_running_emulation
 
@@ -236,7 +252,11 @@ function _main() {
 	log I "Starting Opensand satellite emulation measurements"
 	trap _osnd_abort_measurements EXIT
 	trap _osnd_interrupt_measurements SIGINT
+	osnd_stats_every 4 &
+
 	_osnd_run_measurements 2> >(log E -)
+
+	kill %1
 	trap - SIGINT
 	trap - EXIT
 
