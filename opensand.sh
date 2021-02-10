@@ -106,7 +106,7 @@ function _osnd_abort_measurements() {
 	log E "Aborting measurements"
 	osnd_teardown 2>/dev/null
 	for pid in "${pids[@]}"; do
-		kill $pid
+		kill $pid &>/dev/null
 	done
 	_osnd_cleanup
 }
