@@ -72,7 +72,7 @@ function _osnd_quic_proxies_start() {
 	tmux -L ${TMUX_SOCKET} new-session -s qperf-proxy-gw -d "sudo ip netns exec osnd-gwp bash"
 	sleep $TMUX_INIT_WAIT
 	tmux -L ${TMUX_SOCKET} send-keys -t qperf-proxy-gw \
-		"${QPERF_BIN} -P ${SV_LAN_SERVER_IP%%/*} --tls-cert ${QPERF_CRT} --tl-key ${QPERF_KEY} --cc ${cc_gw} --listen-addr ${GW_LAN_PROXY_IP%%/*} > '${output_dir}/${run_id}_proxy_gw.txt' 2> >(awk '{print(\"E\", \"qperf-gw-proxy:\", \$0)}' > ${OSND_TMP}/logging)" \
+		"${QPERF_BIN} -P ${SV_LAN_SERVER_IP%%/*} --tls-cert ${QPERF_CRT} --tls-key ${QPERF_KEY} --cc ${cc_gw} --listen-addr ${GW_LAN_PROXY_IP%%/*} > '${output_dir}/${run_id}_proxy_gw.txt' 2> >(awk '{print(\"E\", \"qperf-gw-proxy:\", \$0)}' > ${OSND_TMP}/logging)" \
 		Enter
 
 	# Satellite terminal proxy
