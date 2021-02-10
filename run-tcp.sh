@@ -61,7 +61,7 @@ function _osnd_iperf_server_start() {
 	sudo ip netns exec osnd-sv killall $(basename $IPERF_BIN) -q
 	tmux -L ${TMUX_SOCKET} new-session -s iperf -d "sudo ip netns exec osnd-sv bash"
 	sleep $TMUX_INIT_WAIT
-	tmux -L ${TMUX_SOCKET} send-keys -t iperf "${IPERF_BIN} -s -p 5201 -J --logfile '${output_dir}/${run_id}_server.json'" Enter
+	tmux -L ${TMUX_SOCKET} send-keys -t iperf "${IPERF_BIN} -s -p 5201 -J --logfile '${output_dir}/${run_id}_server.json' 2> >(awk '{print(\"E\", \"iperf-server:\", \$0)}' > ${OSND_TMP}/logging)" Enter
 }
 
 # _osnd_iperf_server_stop()
@@ -117,7 +117,7 @@ function _osnd_pepsal_proxies_start() {
 	tmux -L ${TMUX_SOCKET} send-keys -t pepsal-gw "iptables -t mangle -A PREROUTING -i gw2 -p tcp -j TPROXY --on-port 5000 --tproxy-mark 1" Enter
 	# Start pepsal
 	tmux -L ${TMUX_SOCKET} send-keys -t pepsal-gw \
-		"${PEPSAL_BIN} -v -p 5000 -l '${output_dir}/${run_id}_proxy_gw.txt'" \
+		"${PEPSAL_BIN} -v -p 5000 -l '${output_dir}/${run_id}_proxy_gw.txt' 2> >(awk '{print(\"E\", \"pepsal-gw-proxy:\", \$0)}' > ${OSND_TMP}/logging)" \
 		Enter
 
 	# Satellite terminal proxy
@@ -132,7 +132,7 @@ function _osnd_pepsal_proxies_start() {
 	tmux -L ${TMUX_SOCKET} send-keys -t pepsal-st "iptables -t mangle -A PREROUTING -i st2 -p tcp -j TPROXY --on-port 5000 --tproxy-mark 1" Enter
 	# Start pepsal
 	tmux -L ${TMUX_SOCKET} send-keys -t pepsal-st \
-		"${PEPSAL_BIN} -v -p 5000 -l '${output_dir}/${run_id}_proxy_st.txt'" \
+		"${PEPSAL_BIN} -v -p 5000 -l '${output_dir}/${run_id}_proxy_st.txt' 2> >(awk '{print(\"E\", \"pepsal-st-proxy:\", \$0)}' > ${OSND_TMP}/logging)" \
 		Enter
 }
 

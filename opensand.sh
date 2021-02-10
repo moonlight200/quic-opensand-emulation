@@ -3,7 +3,7 @@ set -o nounset
 set -o errtrace
 set -o functrace
 
-export SCRIPT_VERSION="0.5-beta"
+export SCRIPT_VERSION="0.6-beta"
 export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 set -o allexport
@@ -21,6 +21,8 @@ source "${SCRIPT_DIR}/run-quic.sh"
 source "${SCRIPT_DIR}/run-tcp.sh"
 source "${SCRIPT_DIR}/stats.sh"
 
+declare -A pids
+
 # log(level, message...)
 # Log a message of the specified level to the output and the log file.
 function log() {
@@ -28,10 +30,15 @@ function log() {
 	shift
 	local msg="$@"
 
-	if [[ "$msg" == "-" ]]; then
+	if [[ "$level" == "-" ]] || [[ "$msg" == "-" ]]; then
+		if [[ "$level" == "-" ]]; then
+			# Level will be read from stdin
+			level=""
+		fi
+
 		# Log each line in stdin as separate log message
 		while read -r err_line; do
-			log $level "$err_line"
+			log $level $err_line
 		done < <(cat -)
 		return
 	fi
@@ -97,8 +104,10 @@ function _osnd_cleanup() {
 # Trap function executed on the EXIT trap during active measurements.
 function _osnd_abort_measurements() {
 	log E "Aborting measurements"
-	kill %1 2>/dev/null
 	osnd_teardown 2>/dev/null
+	for pid in "${pids[@]}"; do
+		kill $pid
+	done
 	_osnd_cleanup
 }
 
@@ -166,6 +175,19 @@ function _osnd_create_emulation_tmp_dir() {
 	fi
 
 	export OSND_TMP="$tmp_dir"
+}
+
+# _osnd_start_logging_pipe()
+# Creates a named pipe to be used by processes in tmux sessions to output log messages
+function _osnd_start_logging_pipe() {
+	mkfifo "${OSND_TMP}/logging"
+    tail -f -n +0 "${OSND_TMP}/logging" > >(log -) &
+    pids['logpipe']=$!
+}
+
+function _osnd_stop_logging_pipe() {
+	kill ${pids['logpipe']}
+	rm "${OSND_TMP}/logging"
 }
 
 # _osnd_exec_measurement_on_config(config_name)
@@ -250,15 +272,22 @@ function _main() {
 	_osnd_create_emulation_tmp_dir
 
 	log I "Starting Opensand satellite emulation measurements"
+	# Start printing stats
+	osnd_stats_every 4 &
+	pids['stats']=$!
+	_osnd_start_logging_pipe
+
 	trap _osnd_abort_measurements EXIT
 	trap _osnd_interrupt_measurements SIGINT
-	osnd_stats_every 4 &
 
 	_osnd_run_measurements 2> >(log E -)
 
-	kill %1
 	trap - SIGINT
 	trap - EXIT
+
+	_osnd_stop_logging_pipe
+	kill ${pids['stats']}
+	unset pids['stats']
 
 	_osnd_cleanup
 	log I "Done with all measurements"
