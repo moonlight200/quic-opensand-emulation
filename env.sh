@@ -49,6 +49,8 @@ BR_GW_MAC="de:ad:be:ef:00:01"
 
 # Timings and advanced config
 
+# How long to run the measurements (in seconds)
+MEASURE_TIME=300
 # Seconds to wait after the environment has been started and before the measurements are executed
 MEASURE_WAIT=3
 # Seconds to wait after one measurement run

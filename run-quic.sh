@@ -118,8 +118,8 @@ function _osnd_run_quic() {
 	local -n env_config_ref=$env_config_name
 	local base_run_id="quic"
 	local name_ext=""
-	local measure_secs=30
-	local timeout=45
+	local measure_secs=$MEASURE_TIME
+	local timeout=$(echo "${MEASURE_TIME} * 1.1" | bc -l)
 	local server_ip="${SV_LAN_SERVER_IP%%/*}"
 
 	if [[ "$pep" == true ]]; then

@@ -5,10 +5,10 @@
 function _osnd_ping_measure() {
 	local output_dir="$1"
 	local run_id=$2
-	local max_secs=120
+	local timeout=110
 
 	log I "Running ping"
-	sudo timeout --foreground $max_secs ip netns exec osnd-cl ping -n -W 8 -c 10000 -l 100 -i 0.01 ${SV_LAN_SERVER_IP%%/*} >"${output_dir}/ping.txt"
+	sudo timeout --foreground $timeout ip netns exec osnd-cl ping -n -W 8 -c 10000 -l 100 -i 0.01 ${SV_LAN_SERVER_IP%%/*} >"${output_dir}/ping.txt"
 	local status=$?
 
 	# Check for error, report if any

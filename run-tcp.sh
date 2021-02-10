@@ -195,7 +195,7 @@ function osnd_run_tcp_goodput() {
 		fi
 
 		# Client
-		_osnd_iperf_measure "$output_dir" "$run_id" "${env_config_ref['cc_cl']:-reno}" 30 45
+		_osnd_iperf_measure "$output_dir" "$run_id" "${env_config_ref['cc_cl']:-reno}" $MEASURE_TIME $(echo "${MEASURE_TIME} * 1.1" | bc -l)
 
 		# Cleanup
 		if [[ "$pep" == true ]]; then
