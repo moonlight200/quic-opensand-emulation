@@ -95,9 +95,7 @@ function _osnd_cleanup() {
 	tmux -L ${TMUX_SOCKET} kill-server &>/dev/null
 
 	# Remove temporary directory
-	if [ -e "$OSND_TMP" ]; then
-		rm -rf "$OSND_TMP" &>/dev/null
-	fi
+	rm -rf "$OSND_TMP" &>/dev/null
 }
 
 # _osnd_abort_measurements()
