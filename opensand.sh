@@ -178,13 +178,16 @@ function _osnd_create_emulation_tmp_dir() {
 # _osnd_start_logging_pipe()
 # Creates a named pipe to be used by processes in tmux sessions to output log messages
 function _osnd_start_logging_pipe() {
+	log D "Starting log pipe"
 	mkfifo "${OSND_TMP}/logging"
     tail -f -n +0 "${OSND_TMP}/logging" > >(log -) &
     pids['logpipe']=$!
 }
 
 function _osnd_stop_logging_pipe() {
-	kill ${pids['logpipe']}
+	log D "Stopping log pipe"
+	kill ${pids['logpipe']} &> /dev/null
+	unset pids['logpipe']
 	rm "${OSND_TMP}/logging"
 }
 
@@ -284,7 +287,7 @@ function _main() {
 	trap - EXIT
 
 	_osnd_stop_logging_pipe
-	kill ${pids['stats']}
+	kill ${pids['stats']} &> /dev/null
 	unset pids['stats']
 
 	_osnd_cleanup

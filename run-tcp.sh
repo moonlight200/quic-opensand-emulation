@@ -117,7 +117,7 @@ function _osnd_pepsal_proxies_start() {
 	tmux -L ${TMUX_SOCKET} send-keys -t pepsal-gw "iptables -t mangle -A PREROUTING -i gw2 -p tcp -j TPROXY --on-port 5000 --tproxy-mark 1" Enter
 	# Start pepsal
 	tmux -L ${TMUX_SOCKET} send-keys -t pepsal-gw \
-		"${PEPSAL_BIN} -v -p 5000 -l '${output_dir}/${run_id}_proxy_gw.txt' 2> >(awk '{print(\"E\", \"pepsal-gw-proxy:\", \$0)}' > ${OSND_TMP}/logging)" \
+		"${PEPSAL_BIN} -p 5000 -l '${output_dir}/${run_id}_proxy_gw.txt' 2> >(awk '{print(\"E\", \"pepsal-gw-proxy:\", \$0)}' > ${OSND_TMP}/logging)" \
 		Enter
 
 	# Satellite terminal proxy
@@ -132,7 +132,7 @@ function _osnd_pepsal_proxies_start() {
 	tmux -L ${TMUX_SOCKET} send-keys -t pepsal-st "iptables -t mangle -A PREROUTING -i st2 -p tcp -j TPROXY --on-port 5000 --tproxy-mark 1" Enter
 	# Start pepsal
 	tmux -L ${TMUX_SOCKET} send-keys -t pepsal-st \
-		"${PEPSAL_BIN} -v -p 5000 -l '${output_dir}/${run_id}_proxy_st.txt' 2> >(awk '{print(\"E\", \"pepsal-st-proxy:\", \$0)}' > ${OSND_TMP}/logging)" \
+		"${PEPSAL_BIN} -p 5000 -l '${output_dir}/${run_id}_proxy_st.txt' 2> >(awk '{print(\"E\", \"pepsal-st-proxy:\", \$0)}' > ${OSND_TMP}/logging)" \
 		Enter
 }
 
