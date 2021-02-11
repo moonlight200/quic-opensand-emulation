@@ -55,7 +55,7 @@ function _osnd_quic_server_stop() {
 	tmux -L ${TMUX_SOCKET} send-keys -t qperf-server C-d
 	sleep $CMD_SHUTDOWN_WAIT
 	sudo ip netns exec osnd-sv killall $(basename $QPERF_BIN) -q
-	tmux -L ${TMUX_SOCKET} kill-session -t qperf >/dev/null 2>&1
+	tmux -L ${TMUX_SOCKET} kill-session -t qperf-server >/dev/null 2>&1
 }
 
 # _osnd_quic_proxies_start(output_dir, run_id, cc_gw, cc_st)
