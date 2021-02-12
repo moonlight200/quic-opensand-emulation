@@ -180,19 +180,19 @@ function _osnd_create_emulation_tmp_dir() {
 function _osnd_start_logging_pipe() {
 	log D "Starting log pipe"
 	mkfifo "${OSND_TMP}/logging"
-    tail -f -n +0 "${OSND_TMP}/logging" > >(log -) &
-    pids['logpipe']=$!
+	tail -f -n +0 "${OSND_TMP}/logging" > >(log -) &
+	pids['logpipe']=$!
 }
 
 function _osnd_stop_logging_pipe() {
 	log D "Stopping log pipe"
-	kill ${pids['logpipe']} &> /dev/null
+	kill ${pids['logpipe']} &>/dev/null
 	unset pids['logpipe']
 	rm "${OSND_TMP}/logging"
 }
 
-# _osnd_exec_measurement_on_config(config_name)
-function _osnd_exec_measurement_on_config() {
+# _osnd_exec_scenario_with_config(config_name)
+function _osnd_exec_scenario_with_config() {
 	local config_name="$1"
 	local -n config_ref="$1"
 
@@ -209,21 +209,21 @@ function _osnd_exec_measurement_on_config() {
 	local run_cnt=${config_ref['runs']:-1}
 	local run_timing_cnt=${config_ref['timing_runs']:-2}
 
-	osnd_run_ping "$config_name" "$measure_output_dir"
+	osnd_measure_ping "$config_name" "$measure_output_dir"
 
-	osnd_run_quic_goodput "$config_name" "$measure_output_dir" false $run_cnt
-	osnd_run_quic_timing "$config_name" "$measure_output_dir" false $run_timing_cnt
-	osnd_run_quic_goodput "$config_name" "$measure_output_dir" true $run_cnt
-	osnd_run_quic_timing "$config_name" "$measure_output_dir" true $run_timing_cnt
+	osnd_measure_quic_goodput "$config_name" "$measure_output_dir" false $run_cnt
+	osnd_measure_quic_timing "$config_name" "$measure_output_dir" false $run_timing_cnt
+	osnd_measure_quic_goodput "$config_name" "$measure_output_dir" true $run_cnt
+	osnd_measure_quic_timing "$config_name" "$measure_output_dir" true $run_timing_cnt
 
-	osnd_run_tcp_goodput "$config_name" "$measure_output_dir" false $run_cnt
-	osnd_run_tcp_timing "$config_name" "$measure_output_dir" false $run_timing_cnt
-	osnd_run_tcp_goodput "$config_name" "$measure_output_dir" true $run_cnt
-	osnd_run_tcp_timing "$config_name" "$measure_output_dir" true $run_timing_cnt
+	osnd_measure_tcp_goodput "$config_name" "$measure_output_dir" false $run_cnt
+	osnd_measure_tcp_timing "$config_name" "$measure_output_dir" false $run_timing_cnt
+	osnd_measure_tcp_goodput "$config_name" "$measure_output_dir" true $run_cnt
+	osnd_measure_tcp_timing "$config_name" "$measure_output_dir" true $run_timing_cnt
 }
 
-# _osnd_run_measurements()
-function _osnd_run_measurements() {
+# _osnd_run_scenarios()
+function _osnd_run_scenarios() {
 	log I "Orbits: ${orbits[@]}"
 	log I "Attenuations: ${attenuations[@]}"
 
@@ -246,7 +246,7 @@ function _osnd_run_measurements() {
 			env_config['runs']=1
 			env_config['timing_runs']=4
 
-			_osnd_exec_measurement_on_config env_config
+			_osnd_exec_scenario_with_config env_config
 
 			sleep $MEASURE_WAIT
 			((measure_nr++))
@@ -281,13 +281,13 @@ function _main() {
 	trap _osnd_abort_measurements EXIT
 	trap _osnd_interrupt_measurements SIGINT
 
-	_osnd_run_measurements 2> >(log E -)
+	_osnd_run_scenarios 2> >(log E -)
 
 	trap - SIGINT
 	trap - EXIT
 
 	_osnd_stop_logging_pipe
-	kill ${pids['stats']} &> /dev/null
+	kill ${pids['stats']} &>/dev/null
 	unset pids['stats']
 
 	_osnd_cleanup

@@ -159,9 +159,9 @@ function _osnd_pepsal_proxies_stop() {
 	tmux -L ${TMUX_SOCKET} kill-session -t pepsal-st >/dev/null 2>&1
 }
 
-# osnd_run_tcp_goodput(env_config_name, output_dir, pep=false, run_cnt=4)
+# osnd_measure_tcp_goodput(env_config_name, output_dir, pep=false, run_cnt=4)
 # Run TCP goodput measurements on the emulation environment
-function osnd_run_tcp_goodput() {
+function osnd_measure_tcp_goodput() {
 	local env_config_name=$1
 	local output_dir="$2"
 	local pep=${3:-false}
@@ -208,9 +208,9 @@ function osnd_run_tcp_goodput() {
 	done
 }
 
-# osnd_run_tcp_ttfb(env_config_name, output_dir, pep=false, run_cnt=12)
+# osnd_measure_tcp_timing(env_config_name, output_dir, pep=false, run_cnt=12)
 # Run TCP timing measurements on the emulation environment
-function osnd_run_tcp_timing() {
+function osnd_measure_tcp_timing() {
 	local env_config_name=$1
 	local output_dir="$2"
 	local pep=${3:-false}
@@ -274,8 +274,8 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 	set +a
 
 	if [[ "$@" ]]; then
-		osnd_run_tcp_goodput env_config "$@"
+		osnd_measure_tcp_goodput env_config "$@"
 	else
-		osnd_run_tcp_goodput env_config "." 0 1
+		osnd_measure_tcp_goodput env_config "." 0 1
 	fi
 fi

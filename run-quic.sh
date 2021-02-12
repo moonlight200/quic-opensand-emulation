@@ -107,8 +107,8 @@ function _osnd_quic_proxies_stop() {
 	tmux -L ${TMUX_SOCKET} kill-session -t qperf-proxy-st >/dev/null 2>&1
 }
 
-# _osnd_run_quic(env_config_name, output_dir, pep=false, timing=false, run_cnt=5)
-function _osnd_run_quic() {
+# _osnd_measure_quic(env_config_name, output_dir, pep=false, timing=false, run_cnt=5)
+function _osnd_measure_quic() {
 	local env_config_name=$1
 	local output_dir="$2"
 	local pep=${3:-false}
@@ -168,24 +168,24 @@ function _osnd_run_quic() {
 
 # osnd_run_quic_goodput(env_config_name, output_dir, pep=false, run_cnt=4)
 # Run QUIC goodput measurements on the emulation environment
-function osnd_run_quic_goodput() {
+function osnd_measure_quic_goodput() {
 	local env_config_name=$1
 	local output_dir="$2"
 	local pep=${3:-false}
 	local run_cnt=${4:-4}
 
-	_osnd_run_quic $env_config_name "$output_dir" $pep false $run_cnt
+	_osnd_measure_quic $env_config_name "$output_dir" $pep false $run_cnt
 }
 
 # osnd_run_quic_ttfb(env_config_name, output_dir, pep=false, run_cnt=12)
 # Run QUIC timing measurements on the emulation environment
-function osnd_run_quic_timing() {
+function osnd_measure_quic_timing() {
 	local env_config_name=$1
 	local output_dir="$2"
 	local pep=${3:-false}
 	local run_cnt=${4:-12}
 
-	_osnd_run_quic $env_config_name "$output_dir" $pep true $run_cnt
+	_osnd_measure_quic $env_config_name "$output_dir" $pep true $run_cnt
 }
 
 # If script is executed directly
@@ -205,8 +205,8 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 	set +a
 
 	if [[ "$@" ]]; then
-		osnd_run_quic_goodput env_config "$@"
+		osnd_measure_quic_goodput env_config "$@"
 	else
-		osnd_run_quic_goodput env_config "." 0 1
+		osnd_measure_quic_goodput env_config "." 0 1
 	fi
 fi

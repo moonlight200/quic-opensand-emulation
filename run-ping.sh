@@ -24,9 +24,9 @@ function _osnd_ping_measure() {
 	return $status
 }
 
-# osnd_run_ping(env_config_ref, output_dir, run_cnt=1)
+# osnd_measure_ping(env_config_ref, output_dir, run_cnt=1)
 # Run all ping measurements and place the results in output_dir.
-function osnd_run_ping() {
+function osnd_measure_ping() {
 	local env_config_ref=$1
 	local output_dir="$2"
 	local run_cnt=${3:-1}
@@ -61,8 +61,8 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 	set +a
 
 	if [[ "$@" ]]; then
-		osnd_run_ping env_config "$@"
+		osnd_measure_ping env_config "$@"
 	else
-		osnd_run_ping env_config "."
+		osnd_measure_ping env_config "."
 	fi
 fi
