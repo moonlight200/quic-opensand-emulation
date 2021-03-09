@@ -242,9 +242,9 @@ function _osnd_run_scenarios() {
 
 			env_config['orbit']="$orbit"
 			env_config['attenuation']="$attenuation"
-			env_config['prime']=0
-			env_config['runs']=1
-			env_config['timing_runs']=4
+			env_config['prime']=$env_prime_secs
+			env_config['runs']=$run_cnt
+			env_config['timing_runs']=$ttfb_run_cnt
 
 			_osnd_exec_scenario_with_config env_config
 
@@ -256,7 +256,59 @@ function _osnd_run_scenarios() {
 
 function _osnd_parse_args() {
 	show_stats=false
-	# TODO arg parse
+	osnd_tag=""
+	env_prime_secs=0
+	ttfb_run_cnt=4
+	run_cnt=1
+
+	while getopts ":t:sO:A:P:T:N:" opt; do
+		case "$opt" in
+		t)
+			osnd_tag="_$OPTARG"
+			;;
+		s)
+			show_stats=true
+			;;
+		O)
+			IFS=',' read -ra orbits <<<"$OPTARG"
+			;;
+		A)
+			IFS=',' read -ra attenuations <<<"$OPTARG"
+			;;
+		P)
+			if [[ "$OPTARG" =~ ^[0-9]+$ ]]; then
+				env_prime_secs=$OPTARG
+			else
+				echo "Invalid integer value for -P"
+				exit 1
+			fi
+			;;
+		T)
+			if [[ "$OPTARG" =~ ^[0-9]+$ ]]; then
+				ttfb_run_cnt=$OPTARG
+			else
+				echo "Invalid integer value for -T"
+				exit 1
+			fi
+			;;
+		N)
+			if [[ "$OPTARG" =~ ^[0-9]+$ ]]; then
+				run_cnt=$OPTARG
+			else
+				echo "Invalid integer value for -N"
+				exit 1
+			fi
+			;;
+		:)
+			echo "$0: Argumet required for -$OPTARG" >&2
+			exit 1
+			;;
+		?)
+			echo "Unknown argument -$OPTARG"
+			exit 2
+			;;
+		esac
+	done
 }
 
 function _main() {
@@ -268,7 +320,7 @@ function _main() {
 	_osnd_check_running_emulation
 
 	emulation_start="$(date +"%Y-%m-%d-%H-%M")"
-	export EMULATION_DIR="${RESULTS_DIR}/${emulation_start}_opensand"
+	export EMULATION_DIR="${RESULTS_DIR}/${emulation_start}_opensand${osnd_tag}}"
 	_osnd_create_emulation_output_dir
 	_osnd_create_emulation_tmp_dir
 
