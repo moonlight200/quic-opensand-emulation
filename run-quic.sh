@@ -154,6 +154,7 @@ function _osnd_measure_quic() {
 
 		# Client
 		_osnd_quic_measure "$output_dir" "$run_id" "${env_config_ref['cc_cl']:-reno}" $measure_secs $timeout "$server_ip"
+		sleep $MEASURE_GRACE
 
 		# Cleanup
 		if [[ "$pep" == true ]]; then

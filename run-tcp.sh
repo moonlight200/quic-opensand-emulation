@@ -196,6 +196,7 @@ function osnd_measure_tcp_goodput() {
 
 		# Client
 		_osnd_iperf_measure "$output_dir" "$run_id" "${env_config_ref['cc_cl']:-reno}" $MEASURE_TIME $(echo "${MEASURE_TIME} * 1.1" | bc -l)
+		sleep $MEASURE_GRACE
 
 		# Cleanup
 		if [[ "$pep" == true ]]; then
@@ -245,6 +246,7 @@ function osnd_measure_tcp_timing() {
 
 		# Client
 		_osnd_curl_measure "$output_dir" "$run_id" 3
+		sleep $MEASURE_GRACE
 
 		# Cleanup
 		if [[ "$pep" == true ]]; then

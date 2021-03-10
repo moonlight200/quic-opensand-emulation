@@ -36,7 +36,7 @@ function osnd_measure_ping() {
 		osnd_setup $env_config_ref
 		sleep $MEASURE_WAIT
 		_osnd_ping_measure "$output_dir" $i
-		sleep $MEASURE_WAIT
+		sleep $MEASURE_GRACE
 		osnd_teardown
 		sleep $RUN_WAIT
 	done
