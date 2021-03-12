@@ -3,7 +3,7 @@ set -o nounset
 set -o errtrace
 set -o functrace
 
-export SCRIPT_VERSION="0.6-beta"
+export SCRIPT_VERSION="1.0"
 export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 set -o allexport
@@ -320,7 +320,7 @@ function _main() {
 	_osnd_check_running_emulation
 
 	emulation_start="$(date +"%Y-%m-%d-%H-%M")"
-	export EMULATION_DIR="${RESULTS_DIR}/${emulation_start}_opensand${osnd_tag}}"
+	export EMULATION_DIR="${RESULTS_DIR}/${emulation_start}_opensand${osnd_tag}"
 	_osnd_create_emulation_output_dir
 	_osnd_create_emulation_tmp_dir
 
