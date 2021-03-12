@@ -54,7 +54,7 @@ MEASURE_TIME=300
 # Seconds to wait after the environment has been started and before the measurements are executed
 MEASURE_WAIT=3
 # Seconds to wait after a measurement before stopping the server and environment
-MEASURE_GRACE=1
+MEASURE_GRACE=3
 # Seconds to wait after one measurement run
 RUN_WAIT=1
 # Seconds to wait after sending a stop signal to a running command
