@@ -266,9 +266,9 @@ function _osnd_run_scenarios() {
 
 					env_config['id']="$(md5sum <<<"$measure_config" | cut -d' ' -f 1)"
 
-					env_config['ping']=true
-					env_config['quic']=true
-					env_config['tcp']=true
+					env_config['ping']=$exec_ping
+					env_config['quic']=$exec_quic
+					env_config['tcp']=$exec_tcp
 
 					env_config['orbit']="$orbit"
 					env_config['attenuation']="$attenuation"
@@ -318,6 +318,9 @@ Measurement:
   -O <#,>    cls of orbits to measure (GEO|MEO|LEO)
   -P #       seconds to prime a new environment with some pings
   -T #       number of timint measurements per config
+  -X         disable ping measurement
+  -Y         disable quic measurements
+  -Z         disable tcp measurements
 
 <#,> indicates that the argument accepts a comma separated list of values
 ...* indicates, that the argument can be repeated multiple times
@@ -332,9 +335,12 @@ function _osnd_parse_args() {
 	env_prime_secs=0
 	ttfb_run_cnt=4
 	run_cnt=1
+	exec_ping=true
+	exec_quic=true
+	exec_tcp=true
 
 	local -a new_transfer_buffer_sizes=()
-	while getopts ":t:shvO:A:B:C:P:T:N:" opt; do
+	while getopts ":t:shvO:A:B:C:P:T:N:XYZ" opt; do
 		case "$opt" in
 		h)
 			_osnd_print_usage "$0"
@@ -402,6 +408,15 @@ function _osnd_parse_args() {
 				echo "Invalid integer value for -T"
 				exit 1
 			fi
+			;;
+		X)
+			exec_ping=false
+			;;
+		Y)
+			exec_quic=false
+			;;
+		Z)
+			exec_tcp=false
 			;;
 		:)
 			echo "Argumet required for -$OPTARG" >&2
