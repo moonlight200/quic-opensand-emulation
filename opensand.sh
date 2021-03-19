@@ -287,6 +287,29 @@ function _osnd_run_scenarios() {
 	done
 }
 
+function _osnd_print_usage() {
+	cat <<USAGE
+Usage: $1 [options]
+
+General:
+  -h         print this help message
+  -s         show statistic logs in stdout
+  -t <tag>   optional tag to identify this measurement
+  -v         print version and exit
+
+Measurement:
+  -A <#,>    csl of attenuations to measure
+  -C <####,> csl of congestion control algorithms to measure (c = cubic, r = reno)
+             the four values per config are for <server><gateway><terminal><client>
+  -N #       number of goodput measurements per config
+  -O <#,>    cls of orbits to measure (GEO|MEO|LEO)
+  -P #       seconds to prime a new environment with some pings
+  -T #       number of timint measurements per config
+
+<#,> indicates that the argument accepts a comma separated list of values
+USAGE
+}
+
 function _osnd_parse_args() {
 	show_stats=false
 	osnd_tag=""
@@ -294,13 +317,21 @@ function _osnd_parse_args() {
 	ttfb_run_cnt=4
 	run_cnt=1
 
-	while getopts ":t:sO:A:C:P:T:N:" opt; do
+	while getopts ":t:shvO:A:C:P:T:N:" opt; do
 		case "$opt" in
-		t)
-			osnd_tag="_$OPTARG"
+		h)
+			_osnd_print_usage "$0"
+			exit 0
 			;;
 		s)
 			show_stats=true
+			;;
+		t)
+			osnd_tag="_$OPTARG"
+			;;
+		v)
+			echo "opensand-measurement $SCRIPT_VERSION"
+			exit 0
 			;;
 		O)
 			IFS=',' read -ra orbits <<<"$OPTARG"
@@ -336,11 +367,13 @@ function _osnd_parse_args() {
 			fi
 			;;
 		:)
-			echo "$0: Argumet required for -$OPTARG" >&2
+			echo "Argumet required for -$OPTARG" >&2
+			echo "$0 -h for help" >&2
 			exit 1
 			;;
 		?)
-			echo "Unknown argument -$OPTARG"
+			echo "Unknown argument -$OPTARG" >&2
+			echo "$0 -h for help" >&2
 			exit 2
 			;;
 		esac
