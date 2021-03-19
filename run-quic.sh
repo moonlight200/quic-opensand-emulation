@@ -1,13 +1,14 @@
 #!/bin/bash
 
-# _osnd_quic_measure(output_dir, run_id, cc, measure_secs, timeout, server_ip)
+# _osnd_quic_measure(output_dir, run_id, cc, tbs, measure_secs, timeout, server_ip)
 function _osnd_quic_measure() {
 	local output_dir="$1"
 	local run_id="$2"
 	local cc="$3"
-	local measure_secs="$4"
-	local timeout="$5"
-	local server_ip="$6"
+	local tbs="$4"
+	local measure_secs="$5"
+	local timeout="$6"
+	local server_ip="$7"
 
 	local measure_opt="-t ${measure_secs}"
 	if [[ "$measure_secs" -lt 0 ]]; then
@@ -15,7 +16,7 @@ function _osnd_quic_measure() {
 	fi
 
 	log I "Running qperf client"
-	sudo timeout --foreground $timeout ip netns exec osnd-cl ${QPERF_BIN} -c ${server_ip} -p 18080 --cc ${cc} $measure_opt --print-raw >"${output_dir}/${run_id}_client.txt"
+	sudo timeout --foreground $timeout ip netns exec osnd-cl ${QPERF_BIN} -c ${server_ip} -p 18080 --cc ${cc} -b ${tbs} $measure_opt --print-raw >"${output_dir}/${run_id}_client.txt"
 	local status=$?
 
 	# Check for error, report if any
@@ -31,18 +32,19 @@ function _osnd_quic_measure() {
 	return $status
 }
 
-# _osnd_quic_server_start(output_dir, run_id, cc)
+# _osnd_quic_server_start(output_dir, run_id, cc, tbs)
 function _osnd_quic_server_start() {
 	local output_dir="$1"
 	local run_id="$2"
 	local cc="$3"
+	local tbs="$4"
 
 	log I "Starting qperf server"
 	sudo ip netns exec osnd-sv killall qperf -q
 	tmux -L ${TMUX_SOCKET} new-session -s qperf-server -d "sudo ip netns exec osnd-sv bash"
 	sleep $TMUX_INIT_WAIT
 	tmux -L ${TMUX_SOCKET} send-keys -t qperf-server \
-		"${QPERF_BIN} -s --tls-cert ${QPERF_CRT} --tls-key ${QPERF_KEY} --cc ${cc} --listen-addr ${SV_LAN_SERVER_IP%%/*} --listen-port 18080 --print-raw > '${output_dir}/${run_id}_server.txt' 2> >(awk '{print(\"E\", \"qperf-server:\", \$0)}' > ${OSND_TMP}/logging)" \
+		"${QPERF_BIN} -s --tls-cert ${QPERF_CRT} --tls-key ${QPERF_KEY} --cc ${cc} -b ${tbs} --listen-addr ${SV_LAN_SERVER_IP%%/*} --listen-port 18080 --print-raw > '${output_dir}/${run_id}_server.txt' 2> >(awk '{print(\"E\", \"qperf-server:\", \$0)}' > ${OSND_TMP}/logging)" \
 		Enter
 }
 
@@ -58,12 +60,14 @@ function _osnd_quic_server_stop() {
 	tmux -L ${TMUX_SOCKET} kill-session -t qperf-server >/dev/null 2>&1
 }
 
-# _osnd_quic_proxies_start(output_dir, run_id, cc_gw, cc_st)
+# _osnd_quic_proxies_start(output_dir, run_id, cc_gw, cc_st, tbs_gw, tbs_st)
 function _osnd_quic_proxies_start() {
 	local output_dir="$1"
 	local run_id="$2"
 	local cc_gw="$3"
 	local cc_st="$4"
+	local tbs_gw="$5"
+	local tbs_st="$6"
 
 	log I "Starting qperf proxies"
 
@@ -72,7 +76,7 @@ function _osnd_quic_proxies_start() {
 	tmux -L ${TMUX_SOCKET} new-session -s qperf-proxy-gw -d "sudo ip netns exec osnd-gwp bash"
 	sleep $TMUX_INIT_WAIT
 	tmux -L ${TMUX_SOCKET} send-keys -t qperf-proxy-gw \
-		"${QPERF_BIN} -P ${SV_LAN_SERVER_IP%%/*} -p 18080 --tls-cert ${QPERF_CRT} --tls-key ${QPERF_KEY} --cc ${cc_gw} --listen-addr ${GW_LAN_PROXY_IP%%/*} --listen-port 18080 --print-raw > '${output_dir}/${run_id}_proxy_gw.txt' 2> >(awk '{print(\"E\", \"qperf-gw-proxy:\", \$0)}' > ${OSND_TMP}/logging)" \
+		"${QPERF_BIN} -P ${SV_LAN_SERVER_IP%%/*} -p 18080 --tls-cert ${QPERF_CRT} --tls-key ${QPERF_KEY} --cc ${cc_gw} -b ${tbs_gw} --listen-addr ${GW_LAN_PROXY_IP%%/*} --listen-port 18080 --print-raw > '${output_dir}/${run_id}_proxy_gw.txt' 2> >(awk '{print(\"E\", \"qperf-gw-proxy:\", \$0)}' > ${OSND_TMP}/logging)" \
 		Enter
 
 	# Satellite terminal proxy
@@ -80,7 +84,7 @@ function _osnd_quic_proxies_start() {
 	tmux -L ${TMUX_SOCKET} new-session -s qperf-proxy-st -d "sudo ip netns exec osnd-stp bash"
 	sleep $TMUX_INIT_WAIT
 	tmux -L ${TMUX_SOCKET} send-keys -t qperf-proxy-st \
-		"${QPERF_BIN} -P ${GW_LAN_PROXY_IP%%/*} -p 18080 --tls-cert ${QPERF_CRT} --tls-key ${QPERF_KEY} --cc ${cc_st} --listen-addr ${CL_LAN_ROUTER_IP%%/*} --listen-port 18080 --print-raw > '${output_dir}/${run_id}_proxy_st.txt' 2> >(awk '{print(\"E\", \"qperf-st-proxy:\", \$0)}' > ${OSND_TMP}/logging)" \
+		"${QPERF_BIN} -P ${GW_LAN_PROXY_IP%%/*} -p 18080 --tls-cert ${QPERF_CRT} --tls-key ${QPERF_KEY} --cc ${cc_st} -b ${tbs_st} --listen-addr ${CL_LAN_ROUTER_IP%%/*} --listen-port 18080 --print-raw > '${output_dir}/${run_id}_proxy_st.txt' 2> >(awk '{print(\"E\", \"qperf-st-proxy:\", \$0)}' > ${OSND_TMP}/logging)" \
 		Enter
 }
 
@@ -143,17 +147,17 @@ function _osnd_measure_quic() {
 		sleep $MEASURE_WAIT
 
 		# Server
-		_osnd_quic_server_start "$output_dir" "$run_id" "${env_config_ref['cc_sv']:-reno}"
+		_osnd_quic_server_start "$output_dir" "$run_id" "${env_config_ref['cc_sv']:-reno}" "${env_config_ref['tbs_sv']:-1M}"
 		sleep $MEASURE_WAIT
 
 		# Proxy
 		if [[ "$pep" == true ]]; then
-			_osnd_quic_proxies_start "$output_dir" "$run_id" "${env_config_ref['cc_gw']:-reno}" "${env_config_ref['cc_st']:-reno}"
+			_osnd_quic_proxies_start "$output_dir" "$run_id" "${env_config_ref['cc_gw']:-reno}" "${env_config_ref['cc_st']:-reno}" "${env_config_ref['tbs_gw']:-1M}" "${env_config_ref['tbs_st']:-1M}"
 			sleep $MEASURE_WAIT
 		fi
 
 		# Client
-		_osnd_quic_measure "$output_dir" "$run_id" "${env_config_ref['cc_cl']:-reno}" $measure_secs $timeout "$server_ip"
+		_osnd_quic_measure "$output_dir" "$run_id" "${env_config_ref['cc_cl']:-reno}" "${env_config_ref['tbs_cl']:-1M}" $measure_secs $timeout "$server_ip"
 		sleep $MEASURE_GRACE
 
 		# Cleanup
