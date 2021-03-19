@@ -209,17 +209,38 @@ function _osnd_exec_scenario_with_config() {
 	local run_cnt=${config_ref['runs']:-1}
 	local run_timing_cnt=${config_ref['timing_runs']:-2}
 
-	osnd_measure_ping "$config_name" "$measure_output_dir"
+	if [[ "${env_config['ping']:-true}" == true ]]; then
+		osnd_measure_ping "$config_name" "$measure_output_dir"
+	fi
 
-	osnd_measure_quic_goodput "$config_name" "$measure_output_dir" false $run_cnt
-	osnd_measure_quic_timing "$config_name" "$measure_output_dir" false $run_timing_cnt
-	osnd_measure_quic_goodput "$config_name" "$measure_output_dir" true $run_cnt
-	osnd_measure_quic_timing "$config_name" "$measure_output_dir" true $run_timing_cnt
+	if [[ "${env_config['quic']:-true}" == true ]]; then
+		osnd_measure_quic_goodput "$config_name" "$measure_output_dir" false $run_cnt
+		osnd_measure_quic_timing "$config_name" "$measure_output_dir" false $run_timing_cnt
+		osnd_measure_quic_goodput "$config_name" "$measure_output_dir" true $run_cnt
+		osnd_measure_quic_timing "$config_name" "$measure_output_dir" true $run_timing_cnt
+	fi
 
-	osnd_measure_tcp_goodput "$config_name" "$measure_output_dir" false $run_cnt
-	osnd_measure_tcp_timing "$config_name" "$measure_output_dir" false $run_timing_cnt
-	osnd_measure_tcp_goodput "$config_name" "$measure_output_dir" true $run_cnt
-	osnd_measure_tcp_timing "$config_name" "$measure_output_dir" true $run_timing_cnt
+	if [[ "${env_config['tcp']:-true}" == true ]]; then
+		osnd_measure_tcp_goodput "$config_name" "$measure_output_dir" false $run_cnt
+		osnd_measure_tcp_timing "$config_name" "$measure_output_dir" false $run_timing_cnt
+		osnd_measure_tcp_goodput "$config_name" "$measure_output_dir" true $run_cnt
+		osnd_measure_tcp_timing "$config_name" "$measure_output_dir" true $run_timing_cnt
+	fi
+}
+
+#_osnd_get_cc(ccs, index)
+function _osnd_get_cc() {
+	local ccs="$1"
+	local index=$2
+
+	case ${ccs:$index:1} in
+	c | C)
+		echo "cubic"
+		;;
+	r | R)
+		echo "reno"
+		;;
+	esac
 }
 
 # _osnd_run_scenarios()
@@ -234,22 +255,34 @@ function _osnd_run_scenarios() {
 
 	for orbit in "${orbits[@]}"; do
 		for attenuation in "${attenuations[@]}"; do
-			log I "Starting measurement ${measure_nr}/${measure_cnt}"
-			log D "Measurement configuration: orbit=$orbit, attenuation=$attenuation"
+			for ccs in "${cc_algorithms[@]}"; do
+				log I "Starting measurement ${measure_nr}/${measure_cnt}"
+				log D "Measurement configuration: orbit=$orbit, attenuation=$attenuation, ccs=$ccs"
 
-			unset env_config
-			declare -A env_config
+				unset env_config
+				declare -A env_config
 
-			env_config['orbit']="$orbit"
-			env_config['attenuation']="$attenuation"
-			env_config['prime']=$env_prime_secs
-			env_config['runs']=$run_cnt
-			env_config['timing_runs']=$ttfb_run_cnt
+				env_config['ping']=true
+				env_config['quic']=true
+				env_config['tcp']=true
 
-			_osnd_exec_scenario_with_config env_config
+				env_config['orbit']="$orbit"
+				env_config['attenuation']="$attenuation"
+				env_config['prime']=$env_prime_secs
+				env_config['runs']=$run_cnt
+				env_config['timing_runs']=$ttfb_run_cnt
 
-			sleep $MEASURE_WAIT
-			((measure_nr++))
+				env_config['ccs']="$ccs"
+				env_config['cc_sv']="$(_osnd_get_cc "$ccs", 0)"
+				env_config['cc_gw']="$(_osnd_get_cc "$ccs", 1)"
+				env_config['cc_st']="$(_osnd_get_cc "$ccs", 2)"
+				env_config['cc_cl']="$(_osnd_get_cc "$ccs", 3)"
+
+				_osnd_exec_scenario_with_config env_config
+
+				sleep $MEASURE_WAIT
+				((measure_nr++))
+			done
 		done
 	done
 }
@@ -261,7 +294,7 @@ function _osnd_parse_args() {
 	ttfb_run_cnt=4
 	run_cnt=1
 
-	while getopts ":t:sO:A:P:T:N:" opt; do
+	while getopts ":t:sO:A:C:P:T:N:" opt; do
 		case "$opt" in
 		t)
 			osnd_tag="_$OPTARG"
@@ -274,6 +307,9 @@ function _osnd_parse_args() {
 			;;
 		A)
 			IFS=',' read -ra attenuations <<<"$OPTARG"
+			;;
+		C)
+			IFS=',' read -ra cc_algorithms <<<"$OPTARG"
 			;;
 		P)
 			if [[ "$OPTARG" =~ ^[0-9]+$ ]]; then
@@ -314,6 +350,7 @@ function _osnd_parse_args() {
 function _main() {
 	declare -a orbits=("GEO")
 	declare -a attenuations=(0)
+	declare -a cc_algorithms=("rrrr")
 
 	_osnd_parse_args "$@"
 
