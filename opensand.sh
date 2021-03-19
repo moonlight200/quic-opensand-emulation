@@ -197,7 +197,7 @@ function _osnd_exec_scenario_with_config() {
 	local -n config_ref="$1"
 
 	# Create output directory for measurements in this configuration
-	local measure_output_dir="${EMULATION_DIR}/${config_ref['orbit']}_a${config_ref['attenuation']}"
+	local measure_output_dir="${EMULATION_DIR}/${config_ref['id']}"
 	mkdir -p "$measure_output_dir"
 
 	# Save configuration
@@ -258,10 +258,13 @@ function _osnd_run_scenarios() {
 			for ccs in "${cc_algorithms[@]}"; do
 				for tbs in "${transfer_buffer_sizes[@]}"; do
 					log I "Starting measurement ${measure_nr}/${measure_cnt}"
-					log D "Measurement configuration: orbit=$orbit, attenuation=$attenuation, ccs=$ccs, tbs=$tbs"
+					local measure_config="orbit=$orbit, attenuation=$attenuation, ccs=$ccs, tbs=$tbs"
+					log D "Measurement configuration: $measure_config"
 
 					unset env_config
 					declare -A env_config
+
+					env_config['id']="$(md5sum <<<"$measure_config" | cut -d' ' -f 1)"
 
 					env_config['ping']=true
 					env_config['quic']=true
