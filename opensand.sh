@@ -256,32 +256,42 @@ function _osnd_run_scenarios() {
 	for orbit in "${orbits[@]}"; do
 		for attenuation in "${attenuations[@]}"; do
 			for ccs in "${cc_algorithms[@]}"; do
-				log I "Starting measurement ${measure_nr}/${measure_cnt}"
-				log D "Measurement configuration: orbit=$orbit, attenuation=$attenuation, ccs=$ccs"
+				for tbs in "${transfer_buffer_sizes[@]}"; do
+					log I "Starting measurement ${measure_nr}/${measure_cnt}"
+					log D "Measurement configuration: orbit=$orbit, attenuation=$attenuation, ccs=$ccs, tbs=$tbs"
 
-				unset env_config
-				declare -A env_config
+					unset env_config
+					declare -A env_config
 
-				env_config['ping']=true
-				env_config['quic']=true
-				env_config['tcp']=true
+					env_config['ping']=true
+					env_config['quic']=true
+					env_config['tcp']=true
 
-				env_config['orbit']="$orbit"
-				env_config['attenuation']="$attenuation"
-				env_config['prime']=$env_prime_secs
-				env_config['runs']=$run_cnt
-				env_config['timing_runs']=$ttfb_run_cnt
+					env_config['orbit']="$orbit"
+					env_config['attenuation']="$attenuation"
+					env_config['prime']=$env_prime_secs
+					env_config['runs']=$run_cnt
+					env_config['timing_runs']=$ttfb_run_cnt
 
-				env_config['ccs']="$ccs"
-				env_config['cc_sv']="$(_osnd_get_cc "$ccs", 0)"
-				env_config['cc_gw']="$(_osnd_get_cc "$ccs", 1)"
-				env_config['cc_st']="$(_osnd_get_cc "$ccs", 2)"
-				env_config['cc_cl']="$(_osnd_get_cc "$ccs", 3)"
+					env_config['ccs']="$ccs"
+					env_config['cc_sv']="$(_osnd_get_cc "$ccs", 0)"
+					env_config['cc_gw']="$(_osnd_get_cc "$ccs", 1)"
+					env_config['cc_st']="$(_osnd_get_cc "$ccs", 2)"
+					env_config['cc_cl']="$(_osnd_get_cc "$ccs", 3)"
 
-				_osnd_exec_scenario_with_config env_config
+					local -a tb_sizes=()
+					IFS=',' read -ra tb_sizes <<<"$tbs"
+					env_config['tbs']="$tbs"
+					env_config['tbs_sv']="${tb_sizes[0]}"
+					env_config['tbs_gw']="${tb_sizes[1]}"
+					env_config['tbs_st']="${tb_sizes[2]}"
+					env_config['tbs_cl']="${tb_sizes[3]}"
 
-				sleep $MEASURE_WAIT
-				((measure_nr++))
+					_osnd_exec_scenario_with_config env_config
+
+					sleep $MEASURE_WAIT
+					((measure_nr++))
+				done
 			done
 		done
 	done
@@ -299,14 +309,17 @@ General:
 
 Measurement:
   -A <#,>    csl of attenuations to measure
-  -C <####,> csl of congestion control algorithms to measure (c = cubic, r = reno)
-             the four values per config are for <server><gateway><terminal><client>
+  -B <#,>*   cls of four qperf transfer buffer sizes for SGTC
+  -C <SGTC,> csl of congestion control algorithms to measure (c = cubic, r = reno)
   -N #       number of goodput measurements per config
   -O <#,>    cls of orbits to measure (GEO|MEO|LEO)
   -P #       seconds to prime a new environment with some pings
   -T #       number of timint measurements per config
 
 <#,> indicates that the argument accepts a comma separated list of values
+...* indicates, that the argument can be repeated multiple times
+SGTC specifies one value for each of the emulation componentes:
+     server, gateway, satellite terminal and client
 USAGE
 }
 
@@ -317,7 +330,8 @@ function _osnd_parse_args() {
 	ttfb_run_cnt=4
 	run_cnt=1
 
-	while getopts ":t:shvO:A:C:P:T:N:" opt; do
+	local -a new_transfer_buffer_sizes=()
+	while getopts ":t:shvO:A:B:C:P:T:N:" opt; do
 		case "$opt" in
 		h)
 			_osnd_print_usage "$0"
@@ -333,14 +347,42 @@ function _osnd_parse_args() {
 			echo "opensand-measurement $SCRIPT_VERSION"
 			exit 0
 			;;
-		O)
-			IFS=',' read -ra orbits <<<"$OPTARG"
-			;;
 		A)
 			IFS=',' read -ra attenuations <<<"$OPTARG"
 			;;
+		B)
+			IFS=',' read -ra buffer_sizes_config <<<"$OPTARG"
+			if [[ "${#buffer_sizes_config[@]}" != 4 ]]; then
+				echo "Need exactly four buffer size configurations for SGTC, ${#buffer_sizes_config[@]} given in '$OPTARG'"
+				exit 1
+			fi
+			new_transfer_buffer_sizes+=( "$OPTARG" )
+			;;
 		C)
 			IFS=',' read -ra cc_algorithms <<<"$OPTARG"
+			for ccs in "${cc_algorithms[@]}"; do
+				if [[ "${#ccs}" != 4 ]]; then
+					echo "Need exactly four cc algorithms for SGT, ${#ccs} given in '$ccs'"
+					exit 1
+				fi
+				for i in 0 1 2 3; do
+					if [[ "$(_osnd_get_cc "$ccs" $i)" == "" ]]; then
+						echo "Unknown cc algorithm '${ccs:$i:1}' in '$ccs'"
+						exit 1
+					fi
+				done
+			done
+			;;
+		N)
+			if [[ "$OPTARG" =~ ^[0-9]+$ ]]; then
+				run_cnt=$OPTARG
+			else
+				echo "Invalid integer value for -N"
+				exit 1
+			fi
+			;;
+		O)
+			IFS=',' read -ra orbits <<<"$OPTARG"
 			;;
 		P)
 			if [[ "$OPTARG" =~ ^[0-9]+$ ]]; then
@@ -358,14 +400,6 @@ function _osnd_parse_args() {
 				exit 1
 			fi
 			;;
-		N)
-			if [[ "$OPTARG" =~ ^[0-9]+$ ]]; then
-				run_cnt=$OPTARG
-			else
-				echo "Invalid integer value for -N"
-				exit 1
-			fi
-			;;
 		:)
 			echo "Argumet required for -$OPTARG" >&2
 			echo "$0 -h for help" >&2
@@ -378,12 +412,17 @@ function _osnd_parse_args() {
 			;;
 		esac
 	done
+
+	if [[ "${#new_transfer_buffer_sizes[@]}" > 0 ]]; then
+		transfer_buffer_sizes=("${new_transfer_buffer_sizes[@]}")
+	fi
 }
 
 function _main() {
 	declare -a orbits=("GEO")
 	declare -a attenuations=(0)
 	declare -a cc_algorithms=("rrrr")
+	declare -a transfer_buffer_sizes=("1M,1M,1M,1M")
 
 	_osnd_parse_args "$@"
 
