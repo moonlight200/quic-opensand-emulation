@@ -198,6 +198,9 @@ function _osnd_exec_scenario_with_config() {
 
 	# Create output directory for measurements in this configuration
 	local measure_output_dir="${EMULATION_DIR}/${config_ref['id']}"
+	if [ -d "$measure_output_dir" ]; then
+		log W "Output directory $measure_output_dir already exists"
+	fi
 	mkdir -p "$measure_output_dir"
 
 	# Save configuration
@@ -248,7 +251,7 @@ function _osnd_run_scenarios() {
 	log I "Orbits: ${orbits[@]}"
 	log I "Attenuations: ${attenuations[@]}"
 
-	local measure_cnt=$(echo "${#orbits[@]}*${#attenuations[@]}*${#cc_algorithms[@]}*${#transfer_buffer_sizes[@]}" | bc -l)
+	local measure_cnt=$(echo "${#orbits[@]}*${#attenuations[@]}*${#cc_algorithms[@]}*${#transfer_buffer_sizes[@]}*${#quicly_buffer_sizes[@]}*${#udp_buffer_sizes[@]}" | bc -l)
 	local measure_nr=1
 
 	env | sort >"${EMULATION_DIR}/environment.txt"
@@ -257,43 +260,63 @@ function _osnd_run_scenarios() {
 		for attenuation in "${attenuations[@]}"; do
 			for ccs in "${cc_algorithms[@]}"; do
 				for tbs in "${transfer_buffer_sizes[@]}"; do
-					log I "Starting measurement ${measure_nr}/${measure_cnt}"
-					local measure_config="orbit=$orbit, attenuation=$attenuation, ccs=$ccs, tbs=$tbs"
-					log D "Measurement configuration: $measure_config"
+					for qbs in "${quicly_buffer_sizes[@]}"; do
+						for ubs in "${udp_buffer_sizes[@]}"; do
+							log I "Starting measurement ${measure_nr}/${measure_cnt}"
+							local measure_config="orbit=$orbit, attenuation=$attenuation, ccs=$ccs, tbs=$tbs, qbs=$qbs, ubs=$ubs"
+							log D "Measurement configuration: $measure_config"
 
-					unset env_config
-					declare -A env_config
+							unset env_config
+							declare -A env_config
 
-					env_config['id']="$(md5sum <<<"$measure_config" | cut -d' ' -f 1)"
+							env_config['id']="$(md5sum <<<"$measure_config" | cut -d' ' -f 1)"
 
-					env_config['ping']=$exec_ping
-					env_config['quic']=$exec_quic
-					env_config['tcp']=$exec_tcp
+							env_config['ping']=$exec_ping
+							env_config['quic']=$exec_quic
+							env_config['tcp']=$exec_tcp
 
-					env_config['orbit']="$orbit"
-					env_config['attenuation']="$attenuation"
-					env_config['prime']=$env_prime_secs
-					env_config['runs']=$run_cnt
-					env_config['timing_runs']=$ttfb_run_cnt
+							env_config['orbit']="$orbit"
+							env_config['attenuation']="$attenuation"
+							env_config['prime']=$env_prime_secs
+							env_config['runs']=$run_cnt
+							env_config['timing_runs']=$ttfb_run_cnt
 
-					env_config['ccs']="$ccs"
-					env_config['cc_sv']="$(_osnd_get_cc "$ccs", 0)"
-					env_config['cc_gw']="$(_osnd_get_cc "$ccs", 1)"
-					env_config['cc_st']="$(_osnd_get_cc "$ccs", 2)"
-					env_config['cc_cl']="$(_osnd_get_cc "$ccs", 3)"
+							env_config['ccs']="$ccs"
+							env_config['cc_sv']="$(_osnd_get_cc "$ccs", 0)"
+							env_config['cc_gw']="$(_osnd_get_cc "$ccs", 1)"
+							env_config['cc_st']="$(_osnd_get_cc "$ccs", 2)"
+							env_config['cc_cl']="$(_osnd_get_cc "$ccs", 3)"
 
-					local -a tb_sizes=()
-					IFS=',' read -ra tb_sizes <<<"$tbs"
-					env_config['tbs']="$tbs"
-					env_config['tbs_sv']="${tb_sizes[0]}"
-					env_config['tbs_gw']="${tb_sizes[1]}"
-					env_config['tbs_st']="${tb_sizes[2]}"
-					env_config['tbs_cl']="${tb_sizes[3]}"
+							local -a tbuf_sizes=()
+							IFS=',' read -ra tbuf_sizes <<<"$tbs"
+							env_config['tbs']="$tbs"
+							env_config['tbs_sv']="${tbuf_sizes[0]}"
+							env_config['tbs_gw']="${tbuf_sizes[1]}"
+							env_config['tbs_st']="${tbuf_sizes[2]}"
+							env_config['tbs_cl']="${tbuf_sizes[3]}"
 
-					_osnd_exec_scenario_with_config env_config
+							local -a qbuf_sizes=()
+							IFS=',' read -ra qbuf_sizes <<<"$qbs"
+							env_config['qbs']="$qbs"
+							env_config['qbs_sv']="${qbuf_sizes[0]}"
+							env_config['qbs_gw']="${qbuf_sizes[1]}"
+							env_config['qbs_st']="${qbuf_sizes[2]}"
+							env_config['qbs_cl']="${qbuf_sizes[3]}"
 
-					sleep $MEASURE_WAIT
-					((measure_nr++))
+							local -a ubuf_sizes=()
+							IFS=',' read -ra ubuf_sizes <<<"$ubs"
+							env_config['ubs']="$ubs"
+							env_config['ubs_sv']="${ubuf_sizes[0]}"
+							env_config['ubs_gw']="${ubuf_sizes[1]}"
+							env_config['ubs_st']="${ubuf_sizes[2]}"
+							env_config['ubs_cl']="${ubuf_sizes[3]}"
+
+							_osnd_exec_scenario_with_config env_config
+
+							sleep $MEASURE_WAIT
+							((measure_nr++))
+						done
+					done
 				done
 			done
 		done
@@ -312,17 +335,19 @@ General:
 
 Measurement:
   -A <#,>    csl of attenuations to measure
-  -B <#,>*   cls of four qperf transfer buffer sizes for SGTC
+  -B <#,>*   csl of four qperf transfer buffer sizes for SGTC
   -C <SGTC,> csl of congestion control algorithms to measure (c = cubic, r = reno)
   -N #       number of goodput measurements per config
-  -O <#,>    cls of orbits to measure (GEO|MEO|LEO)
+  -O <#,>    csl of orbits to measure (GEO|MEO|LEO)
   -P #       seconds to prime a new environment with some pings
-  -T #       number of timint measurements per config
+  -Q <#,>*   csl of four qperf quicly buffer sizes for SGTC
+  -T #       number of timing measurements per config
+  -U <#,>*   csl of four qperf udp buffer sizes for SGTC
   -X         disable ping measurement
   -Y         disable quic measurements
   -Z         disable tcp measurements
 
-<#,> indicates that the argument accepts a comma separated list of values
+<#,> indicates that the argument accepts a comma separated list (csl) of values
 ...* indicates, that the argument can be repeated multiple times
 SGTC specifies one value for each of the emulation componentes:
      server, gateway, satellite terminal and client
@@ -340,6 +365,8 @@ function _osnd_parse_args() {
 	exec_tcp=true
 
 	local -a new_transfer_buffer_sizes=()
+	local -a new_quicly_buffer_sizes=()
+	local -a new_udp_buffer_sizes=()
 	while getopts ":t:shvO:A:B:C:P:T:N:XYZ" opt; do
 		case "$opt" in
 		h)
@@ -362,7 +389,7 @@ function _osnd_parse_args() {
 		B)
 			IFS=',' read -ra buffer_sizes_config <<<"$OPTARG"
 			if [[ "${#buffer_sizes_config[@]}" != 4 ]]; then
-				echo "Need exactly four buffer size configurations for SGTC, ${#buffer_sizes_config[@]} given in '$OPTARG'"
+				echo "Need exactly four transfer buffer size configurations for SGTC, ${#buffer_sizes_config[@]} given in '$OPTARG'"
 				exit 1
 			fi
 			new_transfer_buffer_sizes+=( "$OPTARG" )
@@ -401,6 +428,14 @@ function _osnd_parse_args() {
 				exit 1
 			fi
 			;;
+		Q)
+			IFS=',' read -ra buffer_sizes_config <<<"$OPTARG"
+			if [[ "${#buffer_sizes_config[@]}" != 4 ]]; then
+				echo "Need exactly four quicly buffer size configurations for SGTC, ${#buffer_sizes_config[@]} given in '$OPTARG'"
+				exit 1
+			fi
+			new_quicly_buffer_sizes+=( "$OPTARG" )
+			;;
 		T)
 			if [[ "$OPTARG" =~ ^[0-9]+$ ]]; then
 				ttfb_run_cnt=$OPTARG
@@ -408,6 +443,14 @@ function _osnd_parse_args() {
 				echo "Invalid integer value for -T"
 				exit 1
 			fi
+			;;
+		U)
+			IFS=',' read -ra buffer_sizes_config <<<"$OPTARG"
+			if [[ "${#buffer_sizes_config[@]}" != 4 ]]; then
+				echo "Need exactly four udp buffer size configurations for SGTC, ${#buffer_sizes_config[@]} given in '$OPTARG'"
+				exit 1
+			fi
+			new_udp_buffer_sizes+=( "$OPTARG" )
 			;;
 		X)
 			exec_ping=false
@@ -434,6 +477,12 @@ function _osnd_parse_args() {
 	if [[ "${#new_transfer_buffer_sizes[@]}" > 0 ]]; then
 		transfer_buffer_sizes=("${new_transfer_buffer_sizes[@]}")
 	fi
+	if [[ "${#new_quicly_buffer_sizes[@]}" > 0 ]]; then
+		quicly_buffer_sizes=("${new_quicly_buffer_sizes[@]}")
+	fi
+	if [[ "${#new_udp_buffer_sizes[@]}" > 0 ]]; then
+		udp_buffer_sizes=("${new_udp_buffer_sizes[@]}")
+	fi
 }
 
 function _main() {
@@ -441,6 +490,8 @@ function _main() {
 	declare -a attenuations=(0)
 	declare -a cc_algorithms=("rrrr")
 	declare -a transfer_buffer_sizes=("1M,1M,1M,1M")
+	declare -a quicly_buffer_sizes=("1M,1M,1M,1M")
+	declare -a udp_buffer_sizes=("1M,1M,1M,1M")
 
 	_osnd_parse_args "$@"
 
