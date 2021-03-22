@@ -248,7 +248,7 @@ function _osnd_run_scenarios() {
 	log I "Orbits: ${orbits[@]}"
 	log I "Attenuations: ${attenuations[@]}"
 
-	local measure_cnt=$(echo "${#orbits[@]}*${#attenuations[@]}" | bc -l)
+	local measure_cnt=$(echo "${#orbits[@]}*${#attenuations[@]}*${#cc_algorithms[@]}*${#transfer_buffer_sizes[@]}" | bc -l)
 	local measure_nr=1
 
 	env | sort >"${EMULATION_DIR}/environment.txt"
