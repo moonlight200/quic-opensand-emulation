@@ -370,7 +370,7 @@ function _osnd_parse_args() {
 	local -a new_transfer_buffer_sizes=()
 	local -a new_quicly_buffer_sizes=()
 	local -a new_udp_buffer_sizes=()
-	while getopts ":t:shvO:A:B:C:P:T:N:XYZ" opt; do
+	while getopts ":t:shvO:A:B:C:P:Q:T:U:N:XYZ" opt; do
 		case "$opt" in
 		h)
 			_osnd_print_usage "$0"
