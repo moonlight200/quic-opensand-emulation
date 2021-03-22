@@ -3,7 +3,7 @@ set -o nounset
 set -o errtrace
 set -o functrace
 
-export SCRIPT_VERSION="1.1"
+export SCRIPT_VERSION="1.2"
 export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 set -o allexport
@@ -265,13 +265,13 @@ function _osnd_run_scenarios() {
 					for qbs in "${quicly_buffer_sizes[@]}"; do
 						for ubs in "${udp_buffer_sizes[@]}"; do
 							log I "Starting measurement ${measure_nr}/${measure_cnt}"
-							local measure_config="orbit=$orbit, attenuation=$attenuation, ccs=$ccs, tbs=$tbs, qbs=$qbs, ubs=$ubs"
-							log D "Measurement configuration: $measure_config"
+							local scenario_config="orbit=$orbit, attenuation=$attenuation, ccs=$ccs, tbs=$tbs, qbs=$qbs, ubs=$ubs"
+							log D "Scenario configuration: $scenario_config"
 
 							unset env_config
 							declare -A env_config
 
-							env_config['id']="$(md5sum <<<"$measure_config" | cut -d' ' -f 1)"
+							env_config['id']="$(md5sum <<<"$scenario_config" | cut -d' ' -f 1)"
 
 							env_config['ping']=$exec_ping
 							env_config['quic']=$exec_quic
@@ -313,6 +313,7 @@ function _osnd_run_scenarios() {
 							env_config['ubs_st']="${ubuf_sizes[2]}"
 							env_config['ubs_cl']="${ubuf_sizes[3]}"
 
+							echo "${env_config['id']}  $scenario_config" >> "${EMULATION_DIR}/scenarios.txt"
 							_osnd_exec_scenario_with_config env_config
 
 							sleep $MEASURE_WAIT
