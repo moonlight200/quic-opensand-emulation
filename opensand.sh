@@ -204,10 +204,12 @@ function _osnd_exec_scenario_with_config() {
 	mkdir -p "$measure_output_dir"
 
 	# Save configuration
-	echo "script_version=${SCRIPT_VERSION}" >"$measure_output_dir/config.txt"
-	for config_key in "${!config_ref[@]}"; do
-		echo "${config_key}=${config_ref[$config_key]}" >>"$measure_output_dir/config.txt"
-	done
+	{
+		echo "script_version=${SCRIPT_VERSION}"
+		for config_key in "${!config_ref[@]}"; do
+			echo "${config_key}=${config_ref[$config_key]}"
+		done
+	} | sort > "$measure_output_dir/config.txt"
 
 	local run_cnt=${config_ref['runs']:-1}
 	local run_timing_cnt=${config_ref['timing_runs']:-2}
@@ -392,7 +394,7 @@ function _osnd_parse_args() {
 				echo "Need exactly four transfer buffer size configurations for SGTC, ${#buffer_sizes_config[@]} given in '$OPTARG'"
 				exit 1
 			fi
-			new_transfer_buffer_sizes+=( "$OPTARG" )
+			new_transfer_buffer_sizes+=("$OPTARG")
 			;;
 		C)
 			IFS=',' read -ra cc_algorithms <<<"$OPTARG"
@@ -434,7 +436,7 @@ function _osnd_parse_args() {
 				echo "Need exactly four quicly buffer size configurations for SGTC, ${#buffer_sizes_config[@]} given in '$OPTARG'"
 				exit 1
 			fi
-			new_quicly_buffer_sizes+=( "$OPTARG" )
+			new_quicly_buffer_sizes+=("$OPTARG")
 			;;
 		T)
 			if [[ "$OPTARG" =~ ^[0-9]+$ ]]; then
@@ -450,7 +452,7 @@ function _osnd_parse_args() {
 				echo "Need exactly four udp buffer size configurations for SGTC, ${#buffer_sizes_config[@]} given in '$OPTARG'"
 				exit 1
 			fi
-			new_udp_buffer_sizes+=( "$OPTARG" )
+			new_udp_buffer_sizes+=("$OPTARG")
 			;;
 		X)
 			exec_ping=false
