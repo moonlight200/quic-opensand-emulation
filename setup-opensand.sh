@@ -79,6 +79,22 @@ function _osnd_configure_opensand_min_condition() {
 	done
 }
 
+# _osnd_configure_opensand_carriers()
+function _osnd_configure_opensand_carriers() {
+	for entity in sat gw st; do
+		# Set forward down band to CCM
+		# Remove premium return band
+		# Use full bandwidth remaining return band
+		xmlstarlet edit -L \
+			--update "//forward_down_band/spot[@id='1']/carriers_distribution/down_carriers/@access_type" --value "CCM" \
+			--delete "//return_up_band/spot[@id='1']/carriers_distribution/up_carriers[@category='Premium']" \
+			--update "//return_up_band/spot[@id='1']/bandwidth" --value "19.98" \
+			--update "//return_up_band/spot[@id='1']/carriers_distribution/up_carriers[@category='Standard']/@ratio" --value "100" \
+			--update "//return_up_band/spot[@id='1']/carriers_distribution/up_carriers[@category='Standard']/@symbol_rate" --value "14.8E6" \
+			"${OSND_TMP}/config_${entity}/core_global.conf"
+	done
+}
+
 # osnd_setup_opensand(orbit, attenuation)
 function osnd_setup_opensand() {
 	local orbit="$1"
@@ -96,6 +112,7 @@ function osnd_setup_opensand() {
 	_osnd_configure_opensand_orbit "$orbit"
 	_osnd_configure_opensand_attenuation "$attenuation"
 	_osnd_configure_opensand_min_condition
+	_osnd_configure_opensand_carriers
 
 	# Start satelite
 	log D "Launching satellite into (name-)space"
