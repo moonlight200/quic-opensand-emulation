@@ -23,8 +23,10 @@ function _osnd_configure_opensand_orbit() {
 	fi
 
 	for entity in sat gw st; do
-		xmlstarlet ed -L -u "//configuration/common/global_constant_delay" -v "true" "${OSND_TMP}/config_${entity}/core_global.conf"
-		xmlstarlet ed -L -u "//configuration/common/delay" -v "$delay_ms" "${OSND_TMP}/config_${entity}/core_global.conf"
+		xmlstarlet edit -L \
+		 	--update "/configuration/common/global_constant_delay" --value "true" \
+		 	--update "/configuration/common/delay" --value "$delay_ms" \
+		 	"${OSND_TMP}/config_${entity}/core_global.conf"
 	done
 }
 
@@ -39,20 +41,16 @@ function _osnd_configure_opensand_attenuation() {
 
 	for entity in st gw; do
 		# Use "Ideal" model for up- and downlink with 20db clear_sky attenuation
-		xmlstarlet ed -L \
-			-u "//configuration/uplink_physical_layer/attenuation_model_type" -v "Ideal" \
-			-u "//configuration/uplink_physical_layer/clear_sky_condition" -v "20" \
-			"${OSND_TMP}/config_${entity}/core.conf"
-		xmlstarlet ed -L \
-			-u "//configuration/downlink_physical_layer/attenuation_model_type" -v "Ideal" \
-			-u "//configuration/downlink_physical_layer/clear_sky_condition" -v "20" \
+		xmlstarlet edit -L \
+			--update "/configuration/uplink_physical_layer/attenuation_model_type" --value "Ideal" \
+			--update "/configuration/uplink_physical_layer/clear_sky_condition" --value "20" \
+			--update "/configuration/downlink_physical_layer/attenuation_model_type" --value "Ideal" \
+			--update "/configuration/downlink_physical_layer/clear_sky_condition" --value "20" \
 			"${OSND_TMP}/config_${entity}/core.conf"
 
 		# Configure attenuation
-		xmlstarlet ed -L \
-			-d "//@attenuation_value" \
-			-s "//configuration/ideal/ideal_attenuations/ideal_attenuation[@link='up']" -t 'attr' -n 'attenuation_value' -v "$attenuation" \
-			-s "//configuration/ideal/ideal_attenuations/ideal_attenuation[@link='down']" -t 'attr' -n 'attenuation_value' -v "$attenuation" \
+		xmlstarlet edit -L \
+			--update "/configuration/ideal/ideal_attenuations/ideal_attenuation/@attenuation_value" --value "$attenuation" \
 			"${OSND_TMP}/config_${entity}/plugins/ideal.conf"
 	done
 }
@@ -61,20 +59,20 @@ function _osnd_configure_opensand_attenuation() {
 function _osnd_configure_opensand_min_condition() {
 	# Use "Constant" model for downlink on st and gw
 	for entity in st gw; do
-		xmlstarlet ed -L \
-			-u "//configuration/downlink_physical_layer/minimal_condition_type" -v "Constant" \
+		xmlstarlet edit -L \
+			--update "/configuration/downlink_physical_layer/minimal_condition_type" --value "Constant" \
 			"${OSND_TMP}/config_${entity}/core.conf"
 	done
 
 	# Constant minimal condition type also on sat
-	xmlstarlet ed -L \
-		-u "//configuration/sat_physical_layer/minimal_condition_type" -v "Constant" \
+	xmlstarlet edit -L \
+		--update "/configuration/sat_physical_layer/minimal_condition_type" --value "Constant" \
 		"${OSND_TMP}/config_sat/core.conf"
 
 	# Configure minimal downlink threshold on all entities
 	for entity in sat gw st; do
-		xmlstarlet ed -L \
-			-u "configuration/constant/threshold" -v "0" \
+		xmlstarlet edit -L \
+			--update "/configuration/constant/threshold" --value "0" \
 			"${OSND_TMP}/config_${entity}/plugins/constant.conf"
 	done
 }
