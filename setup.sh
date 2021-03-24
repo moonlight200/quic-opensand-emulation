@@ -43,13 +43,14 @@ function osnd_setup() {
 	local prime="${env_config_ref['prime']:-4}"
 	local orbit="${env_config_ref['orbit']:-GEO}"
 	local attenuation="${env_config_ref['attenuation']:-0}"
+	local modulation_id="${env_config_ref['modulation_id']:-1}"
 
 	log I "Setting up emulation environment"
 
 	osnd_setup_namespaces
 	_osnd_configure_cc "$cc_cl" "$cc_st" "$cc_emu" "$cc_gw" "$cc_sv"
 	sleep 1
-	osnd_setup_opensand "$orbit" "$attenuation"
+	osnd_setup_opensand "$orbit" "$attenuation" "$modulation_id"
 	sleep 1
 	if [[ "$prime" -gt 0 ]]; then
 		_osnd_prime_env $prime

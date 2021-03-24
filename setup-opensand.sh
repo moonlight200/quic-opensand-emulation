@@ -77,8 +77,10 @@ function _osnd_configure_opensand_min_condition() {
 	done
 }
 
-# _osnd_configure_opensand_carriers()
+# _osnd_configure_opensand_carriers(modulation_id)
 function _osnd_configure_opensand_carriers() {
+	local modulation_id="$1"
+
 	for entity in sat gw st; do
 		# Set forward down band to CCM (is actually a special case of VCM, see wiki)
 		# Remove premium return band
@@ -86,24 +88,20 @@ function _osnd_configure_opensand_carriers() {
 		xmlstarlet edit -L \
 			--update "//forward_down_band/spot[@id='1']/carriers_distribution/down_carriers/@access_type" --value "VCM" \
 			--update "//forward_down_band/spot[@id='1']/carriers_distribution/down_carriers/@fmt_group" --value "1" \
-			--update "//forward_down_band/spot[@id='1']/fmt_groups/group[@id='1']/@fmt_id" --value "1" \
+			--update "//forward_down_band/spot[@id='1']/fmt_groups/group[@id='1']/@fmt_id" --value "$modulation_id" \
 			--delete "//return_up_band/spot[@id='1']/carriers_distribution/up_carriers[@category='Premium']" \
 			--update "//return_up_band/spot[@id='1']/bandwidth" --value "19.98" \
 			--update "//return_up_band/spot[@id='1']/carriers_distribution/up_carriers[@category='Standard']/@ratio" --value "100" \
 			--update "//return_up_band/spot[@id='1']/carriers_distribution/up_carriers[@category='Standard']/@symbol_rate" --value "14.8E6" \
 			"${OSND_TMP}/config_${entity}/core_global.conf"
 	done
-
-	# Set VCM0 (first (and only) fmt_group) on all fifos in the gateway
-	xmlstarlet edit -L \
-		--update "//dvb_ncc/spot[@id='1']/layer2_fifos/fifo/@access_type" --value "VCM0" \
-		"${OSND_TMP}/config_gw/core.conf"
 }
 
-# osnd_setup_opensand(orbit, attenuation)
+# osnd_setup_opensand(orbit, attenuation, modulation_id)
 function osnd_setup_opensand() {
 	local orbit="$1"
 	local attenuation="${2:--1}"
+	local modulation_id="${3:-1}"
 
 	# Copy configurations
 	for entity in sat gw st; do
@@ -111,13 +109,17 @@ function osnd_setup_opensand() {
 			rm -rf "${OSND_TMP}/config_${entity}"
 		fi
 		cp -r "${OPENSAND_CONFIGS}/${entity}" "${OSND_TMP}/config_${entity}"
+
+		if [ ! -e "${OSND_TMP}/output_${entity}" ]; then
+			mkdir "${OSND_TMP}/output_${entity}"
+		fi
 	done
 
 	# Modify configuration based on parameter
 	_osnd_configure_opensand_orbit "$orbit"
 	_osnd_configure_opensand_attenuation "$attenuation"
 	_osnd_configure_opensand_min_condition
-	_osnd_configure_opensand_carriers
+	_osnd_configure_opensand_carriers "$modulation_id"
 
 	# Start satelite
 	log D "Launching satellite into (name-)space"
@@ -125,7 +127,7 @@ function osnd_setup_opensand() {
 	tmux -L ${TMUX_SOCKET} new-session -s opensand-sat -d "sudo ip netns exec osnd-sat bash"
 	sleep $TMUX_INIT_WAIT
 	tmux -L ${TMUX_SOCKET} send-keys -t opensand-sat "mount -o bind ${OSND_TMP}/config_sat /etc/opensand" Enter
-	tmux -L ${TMUX_SOCKET} send-keys -t opensand-sat "opensand-sat -a ${EMU_SAT_IP%%/*} -c /etc/opensand" Enter
+	tmux -L ${TMUX_SOCKET} send-keys -t opensand-sat "opensand-sat -a ${EMU_SAT_IP%%/*} -f /${OSND_TMP}/output_sat -c /etc/opensand" Enter
 
 	# Start gateway
 	log D "Aligning the gateway's satellite dish"
@@ -133,7 +135,7 @@ function osnd_setup_opensand() {
 	tmux -L ${TMUX_SOCKET} new-session -s opensand-gw -d "sudo ip netns exec osnd-gw bash"
 	sleep $TMUX_INIT_WAIT
 	tmux -L ${TMUX_SOCKET} send-keys -t opensand-gw "mount -o bind ${OSND_TMP}/config_gw /etc/opensand" Enter
-	tmux -L ${TMUX_SOCKET} send-keys -t opensand-gw "opensand-gw -i 0 -a ${EMU_GW_IP%%/*} -t tap-gw -c /etc/opensand" Enter
+	tmux -L ${TMUX_SOCKET} send-keys -t opensand-gw "opensand-gw -i 0 -a ${EMU_GW_IP%%/*} -t tap-gw -f /${OSND_TMP}/output_gw -c /etc/opensand" Enter
 
 	# Start statellite terminal
 	log D "Connecting the satellite terminal"
@@ -141,7 +143,7 @@ function osnd_setup_opensand() {
 	tmux -L ${TMUX_SOCKET} new-session -s opensand-st -d "sudo ip netns exec osnd-st bash"
 	sleep $TMUX_INIT_WAIT
 	tmux -L ${TMUX_SOCKET} send-keys -t opensand-st "mount -o bind ${OSND_TMP}/config_st /etc/opensand" Enter
-	tmux -L ${TMUX_SOCKET} send-keys -t opensand-st "opensand-st -i 1 -a ${EMU_ST_IP%%/*} -t tap-st -c /etc/opensand" Enter
+	tmux -L ${TMUX_SOCKET} send-keys -t opensand-st "opensand-st -i 1 -a ${EMU_ST_IP%%/*} -t tap-st -f /${OSND_TMP}/output_st -c /etc/opensand" Enter
 }
 
 # If script is executed directly
