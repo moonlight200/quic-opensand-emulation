@@ -93,6 +93,11 @@ function _osnd_configure_opensand_carriers() {
 			--update "//return_up_band/spot[@id='1']/carriers_distribution/up_carriers[@category='Standard']/@symbol_rate" --value "14.8E6" \
 			"${OSND_TMP}/config_${entity}/core_global.conf"
 	done
+
+	# Set VCM0 (first (and only) fmt_group) on all fifos in the gateway
+	xmlstarlet edit -L \
+		--update "//dvb_ncc/spot[@id='1']/layer2_fifos/fifo/@access_type" --value "VCM0" \
+		"${OSND_TMP}/config_gw/core.conf"
 }
 
 # osnd_setup_opensand(orbit, attenuation)
