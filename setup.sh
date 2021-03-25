@@ -1,5 +1,29 @@
 #!/bin/bash
 
+# _osnd_orbit_sat_delay(orbit)
+function _osnd_orbit_sat_delay() {
+	local orbit="$1"
+
+	case "$orbit" in
+	"GEO") echo 125 ;;
+	"MEO") echo 55 ;;
+	"LEO") echo 18 ;;
+	*) echo 0 ;;
+	esac
+}
+
+# _osnd_orbit_ground_delay(orbit)
+function _osnd_orbit_ground_delay() {
+	local orbit="$1"
+
+	case "$orbit" in
+	"GEO") echo 40 ;;
+	"MEO") echo 60 ;;
+	"LEO") echo 80 ;;
+	*) echo 0 ;;
+	esac
+}
+
 # _osnd_configure_cc(cc_cl, cc_st, cc_emu, cc_gw, cc_sv)
 # Configure congestion control algorithms
 function _osnd_configure_cc() {
@@ -45,12 +69,15 @@ function osnd_setup() {
 	local attenuation="${env_config_ref['attenuation']:-0}"
 	local modulation_id="${env_config_ref['modulation_id']:-1}"
 
+	local delay_sat="$(_osnd_orbit_sat_delay "$orbit")"
+	local delay_ground="$(_osnd_orbit_ground_delay "$orbit")"
+
 	log I "Setting up emulation environment"
 
-	osnd_setup_namespaces
+	osnd_setup_namespaces "$delay_ground"
 	_osnd_configure_cc "$cc_cl" "$cc_st" "$cc_emu" "$cc_gw" "$cc_sv"
 	sleep 1
-	osnd_setup_opensand "$orbit" "$attenuation" "$modulation_id"
+	osnd_setup_opensand "$delay_sat" "$attenuation" "$modulation_id"
 	sleep 1
 	if [[ "$prime" -gt 0 ]]; then
 		_osnd_prime_env $prime

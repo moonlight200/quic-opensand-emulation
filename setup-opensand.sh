@@ -1,22 +1,9 @@
 #!/bin/bash
 
-# _osnd_configure_opensand_orbit(orbit)
-# Configures a constant delay based on the given orbit.
-function _osnd_configure_opensand_orbit() {
-	local orbit="$1"
-
-	local delay_ms=-1
-	case "$orbit" in
-	"GEO")
-		delay_ms=125
-		;;
-	"MEO")
-		delay_ms=55
-		;;
-	"LEO")
-		delay_ms=18
-		;;
-	esac
+# _osnd_configure_opensand_delay(delay)
+# Configures a constant delay.
+function _osnd_configure_opensand_delay() {
+	local delay_ms="$1"
 
 	if [ $delay_ms -lt 0 ]; then
 		return
@@ -24,9 +11,9 @@ function _osnd_configure_opensand_orbit() {
 
 	for entity in sat gw st; do
 		xmlstarlet edit -L \
-		 	--update "/configuration/common/global_constant_delay" --value "true" \
-		 	--update "/configuration/common/delay" --value "$delay_ms" \
-		 	"${OSND_TMP}/config_${entity}/core_global.conf"
+			--update "/configuration/common/global_constant_delay" --value "true" \
+			--update "/configuration/common/delay" --value "$delay_ms" \
+			"${OSND_TMP}/config_${entity}/core_global.conf"
 	done
 }
 
@@ -97,9 +84,9 @@ function _osnd_configure_opensand_carriers() {
 	done
 }
 
-# osnd_setup_opensand(orbit, attenuation, modulation_id)
+# osnd_setup_opensand(delay, attenuation, modulation_id)
 function osnd_setup_opensand() {
-	local orbit="$1"
+	local delay_ms="$1"
 	local attenuation="${2:--1}"
 	local modulation_id="${3:-1}"
 
@@ -116,12 +103,12 @@ function osnd_setup_opensand() {
 	done
 
 	# Modify configuration based on parameter
-	_osnd_configure_opensand_orbit "$orbit"
+	_osnd_configure_opensand_delay "$delay_ms"
 	_osnd_configure_opensand_attenuation "$attenuation"
 	_osnd_configure_opensand_min_condition
 	_osnd_configure_opensand_carriers "$modulation_id"
 
-	# Start satelite
+	# Start satellite
 	log D "Launching satellite into (name-)space"
 	sudo ip netns exec osnd-sat killall opensand-sat -q
 	tmux -L ${TMUX_SOCKET} new-session -s opensand-sat -d "sudo ip netns exec osnd-sat bash"
@@ -137,7 +124,7 @@ function osnd_setup_opensand() {
 	tmux -L ${TMUX_SOCKET} send-keys -t opensand-gw "mount -o bind ${OSND_TMP}/config_gw /etc/opensand" Enter
 	tmux -L ${TMUX_SOCKET} send-keys -t opensand-gw "opensand-gw -i 0 -a ${EMU_GW_IP%%/*} -t tap-gw -f /${OSND_TMP}/output_gw -c /etc/opensand" Enter
 
-	# Start statellite terminal
+	# Start satellite terminal
 	log D "Connecting the satellite terminal"
 	sudo ip netns exec osnd-st killall opensand-st -q
 	tmux -L ${TMUX_SOCKET} new-session -s opensand-st -d "sudo ip netns exec osnd-st bash"
