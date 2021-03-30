@@ -18,7 +18,7 @@ function _osnd_quic_measure() {
 	fi
 
 	log I "Running qperf client"
-	sudo timeout --foreground $timeout ip netns exec osnd-cl ${QPERF_BIN} -c ${server_ip} -p 18080 --cc ${cc} -b ${tbs} -q ${qbs} -u ${ubs} $measure_opt --print-raw >"${output_dir}/${run_id}_client.txt"
+	sudo timeout --foreground $timeout ip netns exec osnd-cl ${QPERF_BIN} -c ${server_ip} -p 18080 --cc ${cc} -i ${REPORT_INTERVAL} -b ${tbs} -q ${qbs} -u ${ubs} $measure_opt --print-raw >"${output_dir}/${run_id}_client.txt"
 	local status=$?
 
 	# Check for error, report if any
@@ -48,7 +48,7 @@ function _osnd_quic_server_start() {
 	tmux -L ${TMUX_SOCKET} new-session -s qperf-server -d "sudo ip netns exec osnd-sv bash"
 	sleep $TMUX_INIT_WAIT
 	tmux -L ${TMUX_SOCKET} send-keys -t qperf-server \
-		"${QPERF_BIN} -s --tls-cert ${QPERF_CRT} --tls-key ${QPERF_KEY} --cc ${cc} -b ${tbs} -q ${qbs} -u ${ubs} --listen-addr ${SV_LAN_SERVER_IP%%/*} --listen-port 18080 --print-raw > '${output_dir}/${run_id}_server.txt' 2> >(awk '{print(\"E\", \"qperf-server:\", \$0)}' > ${OSND_TMP}/logging)" \
+		"${QPERF_BIN} -s --tls-cert ${QPERF_CRT} --tls-key ${QPERF_KEY} --cc ${cc} -i ${REPORT_INTERVAL} -b ${tbs} -q ${qbs} -u ${ubs} --listen-addr ${SV_LAN_SERVER_IP%%/*} --listen-port 18080 --print-raw > '${output_dir}/${run_id}_server.txt' 2> >(awk '{print(\"E\", \"qperf-server:\", \$0)}' > ${OSND_TMP}/logging)" \
 		Enter
 }
 
@@ -84,7 +84,7 @@ function _osnd_quic_proxies_start() {
 	tmux -L ${TMUX_SOCKET} new-session -s qperf-proxy-gw -d "sudo ip netns exec osnd-gwp bash"
 	sleep $TMUX_INIT_WAIT
 	tmux -L ${TMUX_SOCKET} send-keys -t qperf-proxy-gw \
-		"${QPERF_BIN} -P ${SV_LAN_SERVER_IP%%/*} -p 18080 --tls-cert ${QPERF_CRT} --tls-key ${QPERF_KEY} --cc ${cc_gw} -b ${tbs_gw} -q ${qbs_gw} -u ${ubs_gw} --listen-addr ${GW_LAN_PROXY_IP%%/*} --listen-port 18080 --print-raw > '${output_dir}/${run_id}_proxy_gw.txt' 2> >(awk '{print(\"E\", \"qperf-gw-proxy:\", \$0)}' > ${OSND_TMP}/logging)" \
+		"${QPERF_BIN} -P ${SV_LAN_SERVER_IP%%/*} -p 18080 --tls-cert ${QPERF_CRT} --tls-key ${QPERF_KEY} --cc ${cc_gw} -i ${REPORT_INTERVAL} -b ${tbs_gw} -q ${qbs_gw} -u ${ubs_gw} --listen-addr ${GW_LAN_PROXY_IP%%/*} --listen-port 18080 --print-raw > '${output_dir}/${run_id}_proxy_gw.txt' 2> >(awk '{print(\"E\", \"qperf-gw-proxy:\", \$0)}' > ${OSND_TMP}/logging)" \
 		Enter
 
 	# Satellite terminal proxy
@@ -92,7 +92,7 @@ function _osnd_quic_proxies_start() {
 	tmux -L ${TMUX_SOCKET} new-session -s qperf-proxy-st -d "sudo ip netns exec osnd-stp bash"
 	sleep $TMUX_INIT_WAIT
 	tmux -L ${TMUX_SOCKET} send-keys -t qperf-proxy-st \
-		"${QPERF_BIN} -P ${GW_LAN_PROXY_IP%%/*} -p 18080 --tls-cert ${QPERF_CRT} --tls-key ${QPERF_KEY} --cc ${cc_st} -b ${tbs_st} -q ${qbs_st} -u ${ubs_st} --listen-addr ${CL_LAN_ROUTER_IP%%/*} --listen-port 18080 --print-raw > '${output_dir}/${run_id}_proxy_st.txt' 2> >(awk '{print(\"E\", \"qperf-st-proxy:\", \$0)}' > ${OSND_TMP}/logging)" \
+		"${QPERF_BIN} -P ${GW_LAN_PROXY_IP%%/*} -p 18080 --tls-cert ${QPERF_CRT} --tls-key ${QPERF_KEY} --cc ${cc_st} -i ${REPORT_INTERVAL} -b ${tbs_st} -q ${qbs_st} -u ${ubs_st} --listen-addr ${CL_LAN_ROUTER_IP%%/*} --listen-port 18080 --print-raw > '${output_dir}/${run_id}_proxy_st.txt' 2> >(awk '{print(\"E\", \"qperf-st-proxy:\", \$0)}' > ${OSND_TMP}/logging)" \
 		Enter
 }
 

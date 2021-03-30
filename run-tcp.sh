@@ -11,7 +11,7 @@ function _osnd_iperf_measure() {
 	log I "Running iperf client"
 	sudo timeout --foreground $timeout \
 		ip netns exec osnd-cl \
-		${IPERF_BIN} -c ${SV_LAN_SERVER_IP%%/*} -p 5201 -t $measure_secs -C "$cc" -R -J --logfile "${output_dir}/${run_id}_client.json"
+		${IPERF_BIN} -c ${SV_LAN_SERVER_IP%%/*} -p 5201 -t $measure_secs -C "$cc" -i ${REPORT_INTERVAL} -R -J --logfile "${output_dir}/${run_id}_client.json"
 	status=$?
 
 	# Check for error, report if any
@@ -61,7 +61,7 @@ function _osnd_iperf_server_start() {
 	sudo ip netns exec osnd-sv killall $(basename $IPERF_BIN) -q
 	tmux -L ${TMUX_SOCKET} new-session -s iperf -d "sudo ip netns exec osnd-sv bash"
 	sleep $TMUX_INIT_WAIT
-	tmux -L ${TMUX_SOCKET} send-keys -t iperf "${IPERF_BIN} -s -p 5201 -J --logfile '${output_dir}/${run_id}_server.json' 2> >(awk '{print(\"E\", \"iperf-server:\", \$0)}' > ${OSND_TMP}/logging)" Enter
+	tmux -L ${TMUX_SOCKET} send-keys -t iperf "${IPERF_BIN} -s -p 5201 -i ${REPORT_INTERVAL} -J --logfile '${output_dir}/${run_id}_server.json' 2> >(awk '{print(\"E\", \"iperf-server:\", \$0)}' > ${OSND_TMP}/logging)" Enter
 }
 
 # _osnd_iperf_server_stop()
