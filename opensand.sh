@@ -3,7 +3,7 @@ set -o nounset
 set -o errtrace
 set -o functrace
 
-export SCRIPT_VERSION="1.4.0"
+export SCRIPT_VERSION="1.4.1"
 export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 set -o allexport
@@ -338,15 +338,15 @@ General:
   -v         print version and exit
 
 Measurement:
-  -A <#,>    csl of attenuations to measure
-  -B <#,>*   csl of four qperf transfer buffer sizes for SGTC
-  -C <SGTC,> csl of congestion control algorithms to measure (c = cubic, r = reno)
-  -N #       number of goodput measurements per config
-  -O <#,>    csl of orbits to measure (GEO|MEO|LEO)
-  -P #       seconds to prime a new environment with some pings
-  -Q <#,>*   csl of four qperf quicly buffer sizes for SGTC
-  -T #       number of timing measurements per config
-  -U <#,>*   csl of four qperf udp buffer sizes for SGTC
+  -A <#,>    csl of attenuations to measure (default: 0db)
+  -B <#,>*   csl of four qperf transfer buffer sizes for SGTC (default: 1M)
+  -C <SGTC,> csl of congestion control algorithms to measure (c = cubic, r = reno) (default: r)
+  -N #       number of goodput measurements per config (default: 1)
+  -O <#,>    csl of orbits to measure (GEO|MEO|LEO) (default: GEO)
+  -P #       seconds to prime a new environment with some pings (default: 5)
+  -Q <#,>*   csl of four qperf quicly buffer sizes for SGTC (default: 1M)
+  -T #       number of timing measurements per config (default: 4)
+  -U <#,>*   csl of four qperf udp buffer sizes for SGTC (default: 1M)
   -X         disable ping measurement
   -Y         disable quic measurements
   -Z         disable tcp measurements
@@ -361,7 +361,7 @@ USAGE
 function _osnd_parse_args() {
 	show_stats=false
 	osnd_tag=""
-	env_prime_secs=0
+	env_prime_secs=5
 	ttfb_run_cnt=4
 	run_cnt=1
 	exec_ping=true
