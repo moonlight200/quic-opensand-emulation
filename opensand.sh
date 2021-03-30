@@ -293,10 +293,8 @@ function _osnd_run_scenarios() {
 							local -a tbuf_sizes=()
 							IFS=',' read -ra tbuf_sizes <<<"$tbs"
 							env_config['tbs']="$tbs"
-							env_config['tbs_sv']="${tbuf_sizes[0]}"
-							env_config['tbs_gw']="${tbuf_sizes[1]}"
-							env_config['tbs_st']="${tbuf_sizes[2]}"
-							env_config['tbs_cl']="${tbuf_sizes[3]}"
+							env_config['tbs_gw']="${tbuf_sizes[0]}"
+							env_config['tbs_st']="${tbuf_sizes[1]}"
 
 							local -a qbuf_sizes=()
 							IFS=',' read -ra qbuf_sizes <<<"$qbs"
@@ -339,7 +337,7 @@ General:
 
 Measurement:
   -A <#,>    csl of attenuations to measure (default: 0db)
-  -B <#,>*   csl of four qperf transfer buffer sizes for SGTC (default: 1M)
+  -B <#,>*   csl of two qperf transfer buffer sizes for G and T (default: 1M)
   -C <SGTC,> csl of congestion control algorithms to measure (c = cubic, r = reno) (default: r)
   -N #       number of goodput measurements per config (default: 1)
   -O <#,>    csl of orbits to measure (GEO|MEO|LEO) (default: GEO)
@@ -392,8 +390,8 @@ function _osnd_parse_args() {
 			;;
 		B)
 			IFS=',' read -ra buffer_sizes_config <<<"$OPTARG"
-			if [[ "${#buffer_sizes_config[@]}" != 4 ]]; then
-				echo "Need exactly four transfer buffer size configurations for SGTC, ${#buffer_sizes_config[@]} given in '$OPTARG'"
+			if [[ "${#buffer_sizes_config[@]}" != 2 ]]; then
+				echo "Need exactly two transfer buffer size configurations for G and T, ${#buffer_sizes_config[@]} given in '$OPTARG'"
 				exit 1
 			fi
 			new_transfer_buffer_sizes+=("$OPTARG")
@@ -493,7 +491,7 @@ function _main() {
 	declare -a orbits=("GEO")
 	declare -a attenuations=(0)
 	declare -a cc_algorithms=("rrrr")
-	declare -a transfer_buffer_sizes=("1M,1M,1M,1M")
+	declare -a transfer_buffer_sizes=("1M,1M")
 	declare -a quicly_buffer_sizes=("1M,1M,1M,1M")
 	declare -a udp_buffer_sizes=("1M,1M,1M,1M")
 
