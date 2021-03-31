@@ -219,17 +219,25 @@ function _osnd_exec_scenario_with_config() {
 	fi
 
 	if [[ "${env_config['quic']:-true}" == true ]]; then
-		osnd_measure_quic_goodput "$config_name" "$measure_output_dir" false $run_cnt
-		osnd_measure_quic_timing "$config_name" "$measure_output_dir" false $run_timing_cnt
-		osnd_measure_quic_goodput "$config_name" "$measure_output_dir" true $run_cnt
-		osnd_measure_quic_timing "$config_name" "$measure_output_dir" true $run_timing_cnt
+		if [[ "${env_config['plain']:-true}" == true ]]; then
+			osnd_measure_quic_goodput "$config_name" "$measure_output_dir" false $run_cnt
+			osnd_measure_quic_timing "$config_name" "$measure_output_dir" false $run_timing_cnt
+		fi
+		if [[ "${env_config['pep']:-true}" == true ]]; then
+			osnd_measure_quic_goodput "$config_name" "$measure_output_dir" true $run_cnt
+			osnd_measure_quic_timing "$config_name" "$measure_output_dir" true $run_timing_cnt
+		fi
 	fi
 
 	if [[ "${env_config['tcp']:-true}" == true ]]; then
-		osnd_measure_tcp_goodput "$config_name" "$measure_output_dir" false $run_cnt
-		osnd_measure_tcp_timing "$config_name" "$measure_output_dir" false $run_timing_cnt
-		osnd_measure_tcp_goodput "$config_name" "$measure_output_dir" true $run_cnt
-		osnd_measure_tcp_timing "$config_name" "$measure_output_dir" true $run_timing_cnt
+		if [[ "${env_config['plain']:-true}" == true ]]; then
+			osnd_measure_tcp_goodput "$config_name" "$measure_output_dir" false $run_cnt
+			osnd_measure_tcp_timing "$config_name" "$measure_output_dir" false $run_timing_cnt
+		fi
+		if [[ "${env_config['pep']:-true}" == true ]]; then
+			osnd_measure_tcp_goodput "$config_name" "$measure_output_dir" true $run_cnt
+			osnd_measure_tcp_timing "$config_name" "$measure_output_dir" true $run_timing_cnt
+		fi
 	fi
 }
 
@@ -273,6 +281,8 @@ function _osnd_run_scenarios() {
 
 							env_config['id']="$(md5sum <<<"$scenario_config" | cut -d' ' -f 1)"
 
+							env_config['plain']=$excec_plain
+							env_config['pep']=$excec_pep
 							env_config['ping']=$exec_ping
 							env_config['quic']=$exec_quic
 							env_config['tcp']=$exec_tcp
@@ -345,6 +355,8 @@ Measurement:
   -Q <#,>*   csl of four qperf quicly buffer sizes for SGTC (default: 1M)
   -T #       number of timing measurements per config (default: 4)
   -U <#,>*   csl of four qperf udp buffer sizes for SGTC (default: 1M)
+  -V         disable plain (non pep) measurements
+  -W         disable pep measurements
   -X         disable ping measurement
   -Y         disable quic measurements
   -Z         disable tcp measurements
@@ -362,6 +374,8 @@ function _osnd_parse_args() {
 	env_prime_secs=5
 	ttfb_run_cnt=4
 	run_cnt=1
+	exec_plain=true
+	exec_pep=true
 	exec_ping=true
 	exec_quic=true
 	exec_tcp=true
@@ -369,7 +383,7 @@ function _osnd_parse_args() {
 	local -a new_transfer_buffer_sizes=()
 	local -a new_quicly_buffer_sizes=()
 	local -a new_udp_buffer_sizes=()
-	while getopts ":t:shvO:A:B:C:P:Q:T:U:N:XYZ" opt; do
+	while getopts ":t:shvO:A:B:C:P:Q:T:U:N:VWXYZ" opt; do
 		case "$opt" in
 		h)
 			_osnd_print_usage "$0"
@@ -453,6 +467,12 @@ function _osnd_parse_args() {
 				exit 1
 			fi
 			new_udp_buffer_sizes+=("$OPTARG")
+			;;
+		V)
+			exec_plain=false
+			;;
+		W)
+			exec_pep=false
 			;;
 		X)
 			exec_ping=false
