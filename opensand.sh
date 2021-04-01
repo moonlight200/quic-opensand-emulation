@@ -3,7 +3,7 @@ set -o nounset
 set -o errtrace
 set -o functrace
 
-export SCRIPT_VERSION="1.4.1"
+export SCRIPT_VERSION="1.4.2"
 export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 set -o allexport
@@ -214,27 +214,27 @@ function _osnd_exec_scenario_with_config() {
 	local run_cnt=${config_ref['runs']:-1}
 	local run_timing_cnt=${config_ref['timing_runs']:-2}
 
-	if [[ "${env_config['ping']:-true}" == true ]]; then
+	if [[ "${env_config['exec_ping']:-true}" == true ]]; then
 		osnd_measure_ping "$config_name" "$measure_output_dir"
 	fi
 
-	if [[ "${env_config['quic']:-true}" == true ]]; then
-		if [[ "${env_config['plain']:-true}" == true ]]; then
+	if [[ "${env_config['exec_quic']:-true}" == true ]]; then
+		if [[ "${env_config['exec_plain']:-true}" == true ]]; then
 			osnd_measure_quic_goodput "$config_name" "$measure_output_dir" false $run_cnt
 			osnd_measure_quic_timing "$config_name" "$measure_output_dir" false $run_timing_cnt
 		fi
-		if [[ "${env_config['pep']:-true}" == true ]]; then
+		if [[ "${env_config['exec_pep']:-true}" == true ]]; then
 			osnd_measure_quic_goodput "$config_name" "$measure_output_dir" true $run_cnt
 			osnd_measure_quic_timing "$config_name" "$measure_output_dir" true $run_timing_cnt
 		fi
 	fi
 
-	if [[ "${env_config['tcp']:-true}" == true ]]; then
-		if [[ "${env_config['plain']:-true}" == true ]]; then
+	if [[ "${env_config['exec_tcp']:-true}" == true ]]; then
+		if [[ "${env_config['exec_plain']:-true}" == true ]]; then
 			osnd_measure_tcp_goodput "$config_name" "$measure_output_dir" false $run_cnt
 			osnd_measure_tcp_timing "$config_name" "$measure_output_dir" false $run_timing_cnt
 		fi
-		if [[ "${env_config['pep']:-true}" == true ]]; then
+		if [[ "${env_config['exec_pep']:-true}" == true ]]; then
 			osnd_measure_tcp_goodput "$config_name" "$measure_output_dir" true $run_cnt
 			osnd_measure_tcp_timing "$config_name" "$measure_output_dir" true $run_timing_cnt
 		fi
@@ -281,11 +281,11 @@ function _osnd_run_scenarios() {
 
 							env_config['id']="$(md5sum <<<"$scenario_config" | cut -d' ' -f 1)"
 
-							env_config['plain']=$exec_plain
-							env_config['pep']=$exec_pep
-							env_config['ping']=$exec_ping
-							env_config['quic']=$exec_quic
-							env_config['tcp']=$exec_tcp
+							env_config['exec_plain']=$exec_plain
+							env_config['exec_pep']=$exec_pep
+							env_config['exec_ping']=$exec_ping
+							env_config['exec_quic']=$exec_quic
+							env_config['exec_tcp']=$exec_tcp
 
 							env_config['orbit']="$orbit"
 							env_config['attenuation']="$attenuation"
