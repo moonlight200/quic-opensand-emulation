@@ -281,8 +281,8 @@ function _osnd_run_scenarios() {
 
 							env_config['id']="$(md5sum <<<"$scenario_config" | cut -d' ' -f 1)"
 
-							env_config['plain']=$excec_plain
-							env_config['pep']=$excec_pep
+							env_config['plain']=$exec_plain
+							env_config['pep']=$exec_pep
 							env_config['ping']=$exec_ping
 							env_config['quic']=$exec_quic
 							env_config['tcp']=$exec_tcp
