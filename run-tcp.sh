@@ -1,17 +1,16 @@
 #!/bin/bash
 
-# _osnd_iperf_measure(output_dir, run_id, cc, measure_secs, timeout)
+# _osnd_iperf_measure(output_dir, run_id, measure_secs, timeout)
 function _osnd_iperf_measure() {
 	local output_dir="$1"
 	local run_id="$2"
-	local cc="$3"
-	local measure_secs="$4"
-	local timeout="$5"
+	local measure_secs="$3"
+	local timeout="$4"
 
 	log I "Running iperf client"
 	sudo timeout --foreground $timeout \
 		ip netns exec osnd-cl \
-		${IPERF_BIN} -c ${SV_LAN_SERVER_IP%%/*} -p 5201 -t $measure_secs -C "$cc" -i ${REPORT_INTERVAL} -R -J --logfile "${output_dir}/${run_id}_client.json"
+		${IPERF_BIN} -c ${SV_LAN_SERVER_IP%%/*} -p 5201 -t $measure_secs -i ${REPORT_INTERVAL} -R -J --logfile "${output_dir}/${run_id}_client.json"
 	status=$?
 
 	# Check for error, report if any
@@ -195,7 +194,7 @@ function osnd_measure_tcp_goodput() {
 		fi
 
 		# Client
-		_osnd_iperf_measure "$output_dir" "$run_id" "${env_config_ref['cc_cl']:-reno}" $MEASURE_TIME $(echo "${MEASURE_TIME} * 1.2" | bc -l)
+		_osnd_iperf_measure "$output_dir" "$run_id" $MEASURE_TIME $(echo "${MEASURE_TIME} * 1.2" | bc -l)
 		sleep $MEASURE_GRACE
 
 		# Cleanup
