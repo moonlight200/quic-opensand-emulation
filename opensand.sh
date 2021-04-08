@@ -3,7 +3,7 @@ set -o nounset
 set -o errtrace
 set -o functrace
 
-export SCRIPT_VERSION="1.4.2"
+export SCRIPT_VERSION="1.5.0"
 export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 set -o allexport
@@ -184,11 +184,144 @@ function _osnd_start_logging_pipe() {
 	pids['logpipe']=$!
 }
 
+# _osnd_stop_logging_pipe()
 function _osnd_stop_logging_pipe() {
 	log D "Stopping log pipe"
 	kill ${pids['logpipe']} &>/dev/null
 	unset pids['logpipe']
 	rm "${OSND_TMP}/logging"
+}
+
+# _osnd_generate_scenarios()
+function _osnd_generate_scenarios() {
+	scenario_file="$OSND_TMP/scenarios"
+	echo "# Scenario config generated at $(date)" >"$scenario_file"
+
+	local common_options="-N ${run_cnt} -T ${ttfb_run_cnt} -P ${env_prime_secs}"
+	if [[ "$exec_plain" != "true" ]]; then
+		common_options="$common_options -V"
+	fi
+	if [[ "$exec_pep" != "true" ]]; then
+		common_options="$common_options -W"
+	fi
+	if [[ "$exec_ping" != "true" ]]; then
+		common_options="$common_options -X"
+	fi
+	if [[ "$exec_quic" != "true" ]]; then
+		common_options="$common_options -Y"
+	fi
+	if [[ "$exec_tcp" != "true" ]]; then
+		common_options="$common_options -Z"
+	fi
+
+	for orbit in "${orbits[@]}"; do
+		for attenuation in "${attenuations[@]}"; do
+			for ccs in "${cc_algorithms[@]}"; do
+				for tbs in "${transfer_buffer_sizes[@]}"; do
+					for qbs in "${quicly_buffer_sizes[@]}"; do
+						for ubs in "${udp_buffer_sizes[@]}"; do
+							local scenario_options="-O ${orbit} -A ${attenuation} -C ${ccs} -B ${tbs} -Q ${qbs} -U ${ubs}"
+							echo "$common_options $scenario_options" >>"$scenario_file"
+						done
+					done
+				done
+			done
+		done
+	done
+}
+
+# _osnd_count_scenarios()
+function _osnd_count_scenarios() {
+	awk '!/^(#.*)?$/' "$scenario_file" | wc -l
+}
+
+# _osnd_read_scenario(config_ref, scenario)
+function _osnd_read_scenario() {
+	local -n config_ref="$1"
+	local scenario="$2"
+
+	local parsed_scenario_args=$(getopt -n "opensand scenario" -o "A:B:C:M:N:O:P:Q:T:U:VWXYZ" -l "attenuation:,transport-buffers:,congestion-control:,modulation:,runs:,orbits:,prime:,quicly-buffers:,timing-runs:,udp-buffers:,disable-plain,disable-pep,disable-ping,disable-quic,disable-tcp" -- $scenario)
+	local parsing_status=$?
+	if [ "$parsing_status" != "0" ]; then
+		return 1
+	fi
+
+	set +o nounset
+	eval set -- "$parsed_scenario_args"
+	while :; do
+		case "$1" in
+		-A | --attenuation)
+			config_ref['attenuation']="$2"
+			shift 2
+			;;
+		-B | --transport-buffers)
+			config_ref['tbs']="$2"
+			shift 2
+			;;
+		-C | --congestion-control)
+			config_ref['ccs']="$2"
+			shift 2
+			;;
+		-M | --modulation)
+			config_ref['modulation_id']="$2"
+			shift 2
+			;;
+		-N | --runs)
+			config_ref['runs']="$2"
+			shift 2
+			;;
+		-O | --orbit)
+			config_ref['orbit']="$2"
+			shift 2
+			;;
+		-P | --prime)
+			config_ref['prime']="$2"
+			shift 2
+			;;
+		-Q | --quicly-buffers)
+			config_ref['qbs']="$2"
+			shift 2
+			;;
+		-T | --timing-runs)
+			config_ref['timing_runs']="$2"
+			shift 2
+			;;
+		-U | --udp-buffers)
+			config_ref['ubs']="$2"
+			shift 2
+			;;
+		-V | --disable-plain)
+			config_ref['exec_plain']="false"
+			shift 1
+			;;
+		-W | --disable-pep)
+			config_ref['exec_pep']="false"
+			shift 1
+			;;
+		-X | --disable-ping)
+			config_ref['exec_ping']="false"
+			shift 1
+			;;
+		-Y | --disable-quic)
+			config_ref['exec_quic']="false"
+			shift 1
+			;;
+		-Z | --dsiable-tcp)
+			config_ref['exec_tcp']="false"
+			shift 1
+			;;
+		--)
+			# Stop parsing args
+			shift 1
+			break
+			;;
+		*)
+			echo >&2 "Unknown argument while reading scenario: $1"
+			return 2
+			;;
+		esac
+	done
+	set -o nounset
 }
 
 # _osnd_exec_scenario_with_config(config_name)
@@ -209,32 +342,32 @@ function _osnd_exec_scenario_with_config() {
 		for config_key in "${!config_ref[@]}"; do
 			echo "${config_key}=${config_ref[$config_key]}"
 		done
-	} | sort > "$measure_output_dir/config.txt"
+	} | sort >"$measure_output_dir/config.txt"
 
 	local run_cnt=${config_ref['runs']:-1}
 	local run_timing_cnt=${config_ref['timing_runs']:-2}
 
-	if [[ "${env_config['exec_ping']:-true}" == true ]]; then
+	if [[ "${config_ref['exec_ping']:-true}" == true ]]; then
 		osnd_measure_ping "$config_name" "$measure_output_dir"
 	fi
 
-	if [[ "${env_config['exec_quic']:-true}" == true ]]; then
-		if [[ "${env_config['exec_plain']:-true}" == true ]]; then
+	if [[ "${config_ref['exec_quic']:-true}" == true ]]; then
+		if [[ "${config_ref['exec_plain']:-true}" == true ]]; then
 			osnd_measure_quic_goodput "$config_name" "$measure_output_dir" false $run_cnt
 			osnd_measure_quic_timing "$config_name" "$measure_output_dir" false $run_timing_cnt
 		fi
-		if [[ "${env_config['exec_pep']:-true}" == true ]]; then
+		if [[ "${config_ref['exec_pep']:-true}" == true ]]; then
 			osnd_measure_quic_goodput "$config_name" "$measure_output_dir" true $run_cnt
 			osnd_measure_quic_timing "$config_name" "$measure_output_dir" true $run_timing_cnt
 		fi
 	fi
 
-	if [[ "${env_config['exec_tcp']:-true}" == true ]]; then
-		if [[ "${env_config['exec_plain']:-true}" == true ]]; then
+	if [[ "${config_ref['exec_tcp']:-true}" == true ]]; then
+		if [[ "${config_ref['exec_plain']:-true}" == true ]]; then
 			osnd_measure_tcp_goodput "$config_name" "$measure_output_dir" false $run_cnt
 			osnd_measure_tcp_timing "$config_name" "$measure_output_dir" false $run_timing_cnt
 		fi
-		if [[ "${env_config['exec_pep']:-true}" == true ]]; then
+		if [[ "${config_ref['exec_pep']:-true}" == true ]]; then
 			osnd_measure_tcp_goodput "$config_name" "$measure_output_dir" true $run_cnt
 			osnd_measure_tcp_timing "$config_name" "$measure_output_dir" true $run_timing_cnt
 		fi
@@ -258,81 +391,78 @@ function _osnd_get_cc() {
 
 # _osnd_run_scenarios()
 function _osnd_run_scenarios() {
-	log I "Orbits: ${orbits[@]}"
-	log I "Attenuations: ${attenuations[@]}"
-
-	local measure_cnt=$(echo "${#orbits[@]}*${#attenuations[@]}*${#cc_algorithms[@]}*${#transfer_buffer_sizes[@]}*${#quicly_buffer_sizes[@]}*${#udp_buffer_sizes[@]}" | bc -l)
-	local measure_nr=1
+	local measure_cnt=$(_osnd_count_scenarios)
+	local measure_nr=0
 
 	env | sort >"${EMULATION_DIR}/environment.txt"
 
-	for orbit in "${orbits[@]}"; do
-		for attenuation in "${attenuations[@]}"; do
-			for ccs in "${cc_algorithms[@]}"; do
-				for tbs in "${transfer_buffer_sizes[@]}"; do
-					for qbs in "${quicly_buffer_sizes[@]}"; do
-						for ubs in "${udp_buffer_sizes[@]}"; do
-							log I "Starting measurement ${measure_nr}/${measure_cnt}"
-							local scenario_config="orbit=$orbit, attenuation=$attenuation, ccs=$ccs, tbs=$tbs, qbs=$qbs, ubs=$ubs"
-							log D "Scenario configuration: $scenario_config"
+	while read scenario; do
+		((measure_nr++))
+		log I "Starting measurement ${measure_nr}/${measure_cnt}"
+		log D "Reading scenario: $scenario"
 
-							unset env_config
-							declare -A env_config
+		unset env_config
+		declare -A env_config
 
-							env_config['id']="$(md5sum <<<"$scenario_config" | cut -d' ' -f 1)"
+		# Default values
+		env_config['exec_plain']="true"
+		env_config['exec_pep']="true"
+		env_config['exec_ping']="true"
+		env_config['exec_quic']="true"
+		env_config['exec_tcp']="true"
 
-							env_config['exec_plain']=$exec_plain
-							env_config['exec_pep']=$exec_pep
-							env_config['exec_ping']=$exec_ping
-							env_config['exec_quic']=$exec_quic
-							env_config['exec_tcp']=$exec_tcp
+		env_config['prime']=5
+		env_config['runs']=1
+		env_config['timing_runs']=4
 
-							env_config['orbit']="$orbit"
-							env_config['attenuation']="$attenuation"
-							env_config['prime']=$env_prime_secs
-							env_config['runs']=$run_cnt
-							env_config['timing_runs']=$ttfb_run_cnt
-							env_config['modulation_id']=1
+		env_config['orbit']="GEO"
+		env_config['attenuation']=0
+		env_config['modulation_id']=1
+		env_config['ccs']="rrrr"
+		env_config['tbs']="1M,1M"
+		env_config['qbs']="1M,1M,1M,1M"
+		env_config['ubs']="1M,1M,1M,1M"
 
-							env_config['ccs']="$ccs"
-							env_config['cc_sv']="$(_osnd_get_cc "$ccs", 0)"
-							env_config['cc_gw']="$(_osnd_get_cc "$ccs", 1)"
-							env_config['cc_st']="$(_osnd_get_cc "$ccs", 2)"
-							env_config['cc_cl']="$(_osnd_get_cc "$ccs", 3)"
+		_osnd_read_scenario env_config "$scenario"
+		local read_status=$?
+		if [ "$read_status" != "0" ]; then
+			log E "Failed to read scenario($read_status): '$scenario'"
+			sleep $MEASURE_WAIT
+			continue
+		fi
+		env_config['id']="$(md5sum <<<"$scenario" | cut -d' ' -f 1)"
 
-							local -a tbuf_sizes=()
-							IFS=',' read -ra tbuf_sizes <<<"$tbs"
-							env_config['tbs']="$tbs"
-							env_config['tbs_gw']="${tbuf_sizes[0]}"
-							env_config['tbs_st']="${tbuf_sizes[1]}"
+		# Extract combined values
+		env_config['cc_sv']="$(_osnd_get_cc "${env_config['ccs']}", 0)"
+		env_config['cc_gw']="$(_osnd_get_cc "${env_config['ccs']}", 1)"
+		env_config['cc_st']="$(_osnd_get_cc "${env_config['ccs']}", 2)"
+		env_config['cc_cl']="$(_osnd_get_cc "${env_config['ccs']}", 3)"
 
-							local -a qbuf_sizes=()
-							IFS=',' read -ra qbuf_sizes <<<"$qbs"
-							env_config['qbs']="$qbs"
-							env_config['qbs_sv']="${qbuf_sizes[0]}"
-							env_config['qbs_gw']="${qbuf_sizes[1]}"
-							env_config['qbs_st']="${qbuf_sizes[2]}"
-							env_config['qbs_cl']="${qbuf_sizes[3]}"
+		local -a tbuf_sizes=()
+		IFS=',' read -ra tbuf_sizes <<<"${env_config['tbs']}"
+		env_config['tbs_gw']="${tbuf_sizes[0]}"
+		env_config['tbs_st']="${tbuf_sizes[1]}"
 
-							local -a ubuf_sizes=()
-							IFS=',' read -ra ubuf_sizes <<<"$ubs"
-							env_config['ubs']="$ubs"
-							env_config['ubs_sv']="${ubuf_sizes[0]}"
-							env_config['ubs_gw']="${ubuf_sizes[1]}"
-							env_config['ubs_st']="${ubuf_sizes[2]}"
-							env_config['ubs_cl']="${ubuf_sizes[3]}"
+		local -a qbuf_sizes=()
+		IFS=',' read -ra qbuf_sizes <<<"${env_config['qbs']}"
+		env_config['qbs_sv']="${qbuf_sizes[0]}"
+		env_config['qbs_gw']="${qbuf_sizes[1]}"
+		env_config['qbs_st']="${qbuf_sizes[2]}"
+		env_config['qbs_cl']="${qbuf_sizes[3]}"
 
-							echo "${env_config['id']}  $scenario_config" >> "${EMULATION_DIR}/scenarios.txt"
-							_osnd_exec_scenario_with_config env_config
+		local -a ubuf_sizes=()
+		IFS=',' read -ra ubuf_sizes <<<"${env_config['ubs']}"
+		env_config['ubs_sv']="${ubuf_sizes[0]}"
+		env_config['ubs_gw']="${ubuf_sizes[1]}"
+		env_config['ubs_st']="${ubuf_sizes[2]}"
+		env_config['ubs_cl']="${ubuf_sizes[3]}"
 
-							sleep $MEASURE_WAIT
-							((measure_nr++))
-						done
-					done
-				done
-			done
-		done
-	done
+		# Execute scenario
+		echo "${env_config['id']} $scenario" >>"${EMULATION_DIR}/scenarios.txt"
+		_osnd_exec_scenario_with_config env_config
+
+		sleep $MEASURE_WAIT
+	done < <(awk '!/^(#.*)?$/' "$scenario_file")
 }
 
 function _osnd_print_usage() {
@@ -340,12 +470,13 @@ function _osnd_print_usage() {
 Usage: $1 [options]
 
 General:
+  -f <file>  read the scenarios from this file instead of the command line arguments.
   -h         print this help message
   -s         show statistic logs in stdout
   -t <tag>   optional tag to identify this measurement
   -v         print version and exit
 
-Measurement:
+Scenario configuration:
   -A <#,>    csl of attenuations to measure (default: 0db)
   -B <#,>*   csl of two qperf transfer buffer sizes for G and T (default: 1M)
   -C <SGTC,> csl of congestion control algorithms to measure (c = cubic, r = reno) (default: r)
@@ -361,9 +492,16 @@ Measurement:
   -Y         disable quic measurements
   -Z         disable tcp measurements
 
+Scenario file format:
+  Each line in the file describes a single scenario, blank lines and lines
+  starting with a # are ignored. A scenario can be configured using the arguments
+  in the scenario configuration section above. However all arguments that accept
+  a comma separated list of values only accept a single value in the scenario
+  file. Same goes for the repeated arguments, only one value is accepted.
+
 <#,> indicates that the argument accepts a comma separated list (csl) of values
 ...* indicates, that the argument can be repeated multiple times
-SGTC specifies one value for each of the emulation componentes:
+SGTC specifies one value for each of the emulation components:
      server, gateway, satellite terminal and client
 USAGE
 }
@@ -379,12 +517,29 @@ function _osnd_parse_args() {
 	exec_ping=true
 	exec_quic=true
 	exec_tcp=true
+	scenario_file=""
 
 	local -a new_transfer_buffer_sizes=()
 	local -a new_quicly_buffer_sizes=()
 	local -a new_udp_buffer_sizes=()
-	while getopts ":t:shvO:A:B:C:P:Q:T:U:N:VWXYZ" opt; do
+	local measure_cli_args="false"
+	while getopts ":f:hst:vA:B:C:N:O:P:Q:T:U:VWXYZ" opt; do
+		if [[ "${opt^^}" == "$opt" ]]; then
+			measure_cli_args="true"
+			if [[ "$scenario_file" != "" ]]; then
+				echo >&2 "Cannot configure measurements with cli args when scenario file is given"
+				exit 1
+			fi
+		fi
+
 		case "$opt" in
+		f)
+			if [[ "$measure_cli_args" == "true" ]]; then
+				echo >&2 "Cannot set scenario file and configure measurements with cli args at the same time"
+				exit 1
+			fi
+			scenario_file="$OPTARG"
+			;;
 		h)
 			_osnd_print_usage "$0"
 			exit 0
@@ -524,6 +679,10 @@ function _main() {
 	_osnd_create_emulation_output_dir
 	_osnd_create_emulation_tmp_dir
 
+	if [[ "$scenario_file" == "" ]]; then
+		_osnd_generate_scenarios
+	fi
+
 	log I "Starting Opensand satellite emulation measurements"
 	# Start printing stats
 	osnd_stats_every 4 &
@@ -537,6 +696,8 @@ function _main() {
 
 	trap - SIGINT
 	trap - EXIT
+
+	log I "All measurements are done, cleaning up"
 
 	_osnd_stop_logging_pipe
 	kill ${pids['stats']} &>/dev/null
