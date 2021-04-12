@@ -119,15 +119,15 @@ function _osnd_quic_proxies_stop() {
 	tmux -L ${TMUX_SOCKET} kill-session -t qperf-proxy-st >/dev/null 2>&1
 }
 
-# _osnd_measure_quic(env_config_name, output_dir, pep=false, timing=false, run_cnt=5)
+# _osnd_measure_quic(scenario_config_name, output_dir, pep=false, timing=false, run_cnt=5)
 function _osnd_measure_quic() {
-	local env_config_name=$1
+	local scenario_config_name=$1
 	local output_dir="$2"
 	local pep=${3:-false}
 	local timing=${4:-false}
 	local run_cnt=${5:-5}
 
-	local -n env_config_ref=$env_config_name
+	local -n scenario_config_ref=$scenario_config_name
 	local base_run_id="quic"
 	local name_ext=""
 	local measure_secs=$MEASURE_TIME
@@ -151,21 +151,21 @@ function _osnd_measure_quic() {
 		local run_id="${base_run_id}_$i"
 
 		# Environment
-		osnd_setup $env_config_name
+		osnd_setup $scenario_config_name
 		sleep $MEASURE_WAIT
 
 		# Server
-		_osnd_quic_server_start "$output_dir" "$run_id" "${env_config_ref['cc_sv']:-reno}" "${env_config_ref['tbs_sv']:-1M}" "${env_config_ref['qbs_sv']:-1M}" "${env_config_ref['ubs_sv']:-1M}"
+		_osnd_quic_server_start "$output_dir" "$run_id" "${scenario_config_ref['cc_sv']:-reno}" "${scenario_config_ref['tbs_sv']:-1M}" "${scenario_config_ref['qbs_sv']:-1M}" "${scenario_config_ref['ubs_sv']:-1M}"
 		sleep $MEASURE_WAIT
 
 		# Proxy
 		if [[ "$pep" == true ]]; then
-			_osnd_quic_proxies_start "$output_dir" "$run_id" "${env_config_ref['cc_gw']:-reno}" "${env_config_ref['cc_st']:-reno}" "${env_config_ref['tbs_gw']:-1M}" "${env_config_ref['tbs_st']:-1M}" "${env_config_ref['qbs_gw']:-1M}" "${env_config_ref['qbs_st']:-1M}" "${env_config_ref['ubs_gw']:-1M}" "${env_config_ref['ubs_st']:-1M}"
+			_osnd_quic_proxies_start "$output_dir" "$run_id" "${scenario_config_ref['cc_gw']:-reno}" "${scenario_config_ref['cc_st']:-reno}" "${scenario_config_ref['tbs_gw']:-1M}" "${scenario_config_ref['tbs_st']:-1M}" "${scenario_config_ref['qbs_gw']:-1M}" "${scenario_config_ref['qbs_st']:-1M}" "${scenario_config_ref['ubs_gw']:-1M}" "${scenario_config_ref['ubs_st']:-1M}"
 			sleep $MEASURE_WAIT
 		fi
 
 		# Client
-		_osnd_quic_measure "$output_dir" "$run_id" "${env_config_ref['cc_cl']:-reno}" "${env_config_ref['tbs_cl']:-1M}" "${env_config_ref['qbs_cl']:-1M}" "${env_config_ref['ubs_cl']:-1M}" $measure_secs $timeout "$server_ip"
+		_osnd_quic_measure "$output_dir" "$run_id" "${scenario_config_ref['cc_cl']:-reno}" "${scenario_config_ref['tbs_cl']:-1M}" "${scenario_config_ref['qbs_cl']:-1M}" "${scenario_config_ref['ubs_cl']:-1M}" $measure_secs $timeout "$server_ip"
 		sleep $MEASURE_GRACE
 
 		# Cleanup
@@ -179,26 +179,26 @@ function _osnd_measure_quic() {
 	done
 }
 
-# osnd_run_quic_goodput(env_config_name, output_dir, pep=false, run_cnt=4)
+# osnd_run_quic_goodput(scenario_config_name, output_dir, pep=false, run_cnt=4)
 # Run QUIC goodput measurements on the emulation environment
 function osnd_measure_quic_goodput() {
-	local env_config_name=$1
+	local scenario_config_name=$1
 	local output_dir="$2"
 	local pep=${3:-false}
 	local run_cnt=${4:-4}
 
-	_osnd_measure_quic $env_config_name "$output_dir" $pep false $run_cnt
+	_osnd_measure_quic $scenario_config_name "$output_dir" $pep false $run_cnt
 }
 
-# osnd_run_quic_ttfb(env_config_name, output_dir, pep=false, run_cnt=12)
+# osnd_run_quic_ttfb(scenario_config_name, output_dir, pep=false, run_cnt=12)
 # Run QUIC timing measurements on the emulation environment
 function osnd_measure_quic_timing() {
-	local env_config_name=$1
+	local scenario_config_name=$1
 	local output_dir="$2"
 	local pep=${3:-false}
 	local run_cnt=${4:-12}
 
-	_osnd_measure_quic $env_config_name "$output_dir" $pep true $run_cnt
+	_osnd_measure_quic $scenario_config_name "$output_dir" $pep true $run_cnt
 }
 
 # If script is executed directly
@@ -209,7 +209,7 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 
 		echo "[$level] $msg"
 	}
-	declare -A env_config
+	declare -A scenario_config
 
 	export SCRIPT_VERSION="manual"
 	export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
@@ -218,8 +218,8 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 	set +a
 
 	if [[ "$@" ]]; then
-		osnd_measure_quic_goodput env_config "$@"
+		osnd_measure_quic_goodput scenario_config "$@"
 	else
-		osnd_measure_quic_goodput env_config "." 0 1
+		osnd_measure_quic_goodput scenario_config "." 0 1
 	fi
 fi

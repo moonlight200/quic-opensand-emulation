@@ -158,15 +158,15 @@ function _osnd_pepsal_proxies_stop() {
 	tmux -L ${TMUX_SOCKET} kill-session -t pepsal-st >/dev/null 2>&1
 }
 
-# osnd_measure_tcp_goodput(env_config_name, output_dir, pep=false, run_cnt=4)
+# osnd_measure_tcp_goodput(scenario_config_name, output_dir, pep=false, run_cnt=4)
 # Run TCP goodput measurements on the emulation environment
 function osnd_measure_tcp_goodput() {
-	local env_config_name=$1
+	local scenario_config_name=$1
 	local output_dir="$2"
 	local pep=${3:-false}
 	local run_cnt=${4:-4}
 
-	local -n env_config_ref=$env_config_name
+	local -n scenario_config_ref=$scenario_config_name
 	local base_run_id="tcp"
 	local name_ext=""
 
@@ -180,7 +180,7 @@ function osnd_measure_tcp_goodput() {
 		local run_id="${base_run_id}_$i"
 
 		# Environment
-		osnd_setup $env_config_name
+		osnd_setup $scenario_config_name
 		sleep $MEASURE_WAIT
 
 		# Server
@@ -208,10 +208,10 @@ function osnd_measure_tcp_goodput() {
 	done
 }
 
-# osnd_measure_tcp_timing(env_config_name, output_dir, pep=false, run_cnt=12)
+# osnd_measure_tcp_timing(scenario_config_name, output_dir, pep=false, run_cnt=12)
 # Run TCP timing measurements on the emulation environment
 function osnd_measure_tcp_timing() {
-	local env_config_name=$1
+	local scenario_config_name=$1
 	local output_dir="$2"
 	local pep=${3:-false}
 	local run_cnt=${4:-12}
@@ -230,7 +230,7 @@ function osnd_measure_tcp_timing() {
 		local run_id="${base_run_id}_$i"
 
 		# Environment
-		osnd_setup $env_config_name
+		osnd_setup $scenario_config_name
 		sleep $MEASURE_WAIT
 
 		# Server
@@ -266,7 +266,7 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 
 		echo "[$level] $msg"
 	}
-	declare -A env_config
+	declare -A scenario_config
 
 	export SCRIPT_VERSION="manual"
 	export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
@@ -275,8 +275,8 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 	set +a
 
 	if [[ "$@" ]]; then
-		osnd_measure_tcp_goodput env_config "$@"
+		osnd_measure_tcp_goodput scenario_config "$@"
 	else
-		osnd_measure_tcp_goodput env_config "." 0 1
+		osnd_measure_tcp_goodput scenario_config "." 0 1
 	fi
 fi

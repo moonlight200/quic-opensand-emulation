@@ -54,20 +54,20 @@ function _osnd_prime_env() {
 		ping -n -W 8 -c $((seconds * 100)) -l 100 -i 0.01 ${SV_LAN_SERVER_IP%%/*} >/dev/null
 }
 
-# osnd_setup(env_config_ref)
+# osnd_setup(scenario_config_ref)
 # Setup the entire emulation environment.
 function osnd_setup() {
-	local -n env_config_ref="$1"
+	local -n scenario_config_ref="$1"
 	# Extract associative array with defaults
-	local cc_cl="${env_config_ref['cc_cl']:-reno}"
-	local cc_st="${env_config_ref['cc_st']:-reno}"
-	local cc_emu="${env_config_ref['cc_emu']:-reno}"
-	local cc_gw="${env_config_ref['cc_gw']:-reno}"
-	local cc_sv="${env_config_ref['cc_sv']:-reno}"
-	local prime="${env_config_ref['prime']:-4}"
-	local orbit="${env_config_ref['orbit']:-GEO}"
-	local attenuation="${env_config_ref['attenuation']:-0}"
-	local modulation_id="${env_config_ref['modulation_id']:-1}"
+	local cc_cl="${scenario_config_ref['cc_cl']:-reno}"
+	local cc_st="${scenario_config_ref['cc_st']:-reno}"
+	local cc_emu="${scenario_config_ref['cc_emu']:-reno}"
+	local cc_gw="${scenario_config_ref['cc_gw']:-reno}"
+	local cc_sv="${scenario_config_ref['cc_sv']:-reno}"
+	local prime="${scenario_config_ref['prime']:-4}"
+	local orbit="${scenario_config_ref['orbit']:-GEO}"
+	local attenuation="${scenario_config_ref['attenuation']:-0}"
+	local modulation_id="${scenario_config_ref['modulation_id']:-1}"
 
 	local delay_sat="$(_osnd_orbit_sat_delay "$orbit")"
 	local delay_ground="$(_osnd_orbit_ground_delay "$orbit")"
@@ -94,7 +94,7 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 
 		echo "[$level] $msg"
 	}
-	declare -A env_config
+	declare -A scenario_config
 
 	export SCRIPT_VERSION="manual"
 	export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
@@ -105,5 +105,5 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 	source "${SCRIPT_DIR}/setup-opensand.sh"
 	source "${SCRIPT_DIR}/setup-namespaces.sh"
 
-	osnd_setup "$@" env_config
+	osnd_setup "$@" scenario_config
 fi

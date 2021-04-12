@@ -401,61 +401,61 @@ function _osnd_run_scenarios() {
 		log I "Starting measurement ${measure_nr}/${measure_cnt}"
 		log D "Reading scenario: $scenario"
 
-		unset env_config
-		declare -A env_config
+		unset scenario_config
+		declare -A scenario_config
 
-		# Default values
-		env_config['exec_plain']="true"
-		env_config['exec_pep']="true"
-		env_config['exec_ping']="true"
-		env_config['exec_quic']="true"
-		env_config['exec_tcp']="true"
+		# Default configuration values
+		scenario_config['exec_plain']="true"
+		scenario_config['exec_pep']="true"
+		scenario_config['exec_ping']="true"
+		scenario_config['exec_quic']="true"
+		scenario_config['exec_tcp']="true"
 
-		env_config['prime']=5
-		env_config['runs']=1
-		env_config['timing_runs']=4
+		scenario_config['prime']=5
+		scenario_config['runs']=1
+		scenario_config['timing_runs']=4
 
-		env_config['orbit']="GEO"
-		env_config['attenuation']=0
-		env_config['modulation_id']=1
-		env_config['ccs']="rrrr"
-		env_config['tbs']="1M,1M"
-		env_config['qbs']="1M,1M,1M,1M"
-		env_config['ubs']="1M,1M,1M,1M"
+		scenario_config['orbit']="GEO"
+		scenario_config['attenuation']=0
+		scenario_config['modulation_id']=1
+		scenario_config['ccs']="rrrr"
+		scenario_config['tbs']="1M,1M"
+		scenario_config['qbs']="1M,1M,1M,1M"
+		scenario_config['ubs']="1M,1M,1M,1M"
 
-		_osnd_read_scenario env_config "$scenario"
+		_osnd_read_scenario scenario_config "$scenario"
 		local read_status=$?
 		if [ "$read_status" != "0" ]; then
 			log E "Failed to read scenario($read_status): '$scenario'"
 			sleep $MEASURE_WAIT
 			continue
 		fi
-		env_config['id']="$(md5sum <<<"$scenario" | cut -d' ' -f 1)"
+		scenario_config['id']="$(md5sum <<<"$scenario" | cut -d' ' -f 1)"
 
 		# Extract combined values
-		env_config['cc_sv']="$(_osnd_get_cc "${env_config['ccs']}", 0)"
-		env_config['cc_gw']="$(_osnd_get_cc "${env_config['ccs']}", 1)"
-		env_config['cc_st']="$(_osnd_get_cc "${env_config['ccs']}", 2)"
-		env_config['cc_cl']="$(_osnd_get_cc "${env_config['ccs']}", 3)"
+		scenario_config['cc_sv']="$(_osnd_get_cc "${scenario_config['ccs']}", 0)"
+		scenario_config['cc_gw']="$(_osnd_get_cc "${scenario_config['ccs']}", 1)"
+		scenario_config['cc_st']="$(_osnd_get_cc "${scenario_config['ccs']}", 2)"
+		scenario_config['cc_cl']="$(_osnd_get_cc "${scenario_config['ccs']}", 3)"
 
 		local -a tbuf_sizes=()
-		IFS=',' read -ra tbuf_sizes <<<"${env_config['tbs']}"
-		env_config['tbs_gw']="${tbuf_sizes[0]}"
-		env_config['tbs_st']="${tbuf_sizes[1]}"
+		IFS=',' read -ra tbuf_sizes <<<"${scenario_config['tbs']}"
+		scenario_config['tbs_gw']="${tbuf_sizes[0]}"
+		scenario_config['tbs_st']="${tbuf_sizes[1]}"
 
 		local -a qbuf_sizes=()
-		IFS=',' read -ra qbuf_sizes <<<"${env_config['qbs']}"
-		env_config['qbs_sv']="${qbuf_sizes[0]}"
-		env_config['qbs_gw']="${qbuf_sizes[1]}"
-		env_config['qbs_st']="${qbuf_sizes[2]}"
-		env_config['qbs_cl']="${qbuf_sizes[3]}"
+		IFS=',' read -ra qbuf_sizes <<<"${scenario_config['qbs']}"
+		scenario_config['qbs_sv']="${qbuf_sizes[0]}"
+		scenario_config['qbs_gw']="${qbuf_sizes[1]}"
+		scenario_config['qbs_st']="${qbuf_sizes[2]}"
+		scenario_config['qbs_cl']="${qbuf_sizes[3]}"
 
 		local -a ubuf_sizes=()
-		IFS=',' read -ra ubuf_sizes <<<"${env_config['ubs']}"
-		env_config['ubs_sv']="${ubuf_sizes[0]}"
-		env_config['ubs_gw']="${ubuf_sizes[1]}"
-		env_config['ubs_st']="${ubuf_sizes[2]}"
-		env_config['ubs_cl']="${ubuf_sizes[3]}"
+		IFS=',' read -ra ubuf_sizes <<<"${scenario_config['ubs']}"
+		scenario_config['ubs_sv']="${ubuf_sizes[0]}"
+		scenario_config['ubs_gw']="${ubuf_sizes[1]}"
+		scenario_config['ubs_st']="${ubuf_sizes[2]}"
+		scenario_config['ubs_cl']="${ubuf_sizes[3]}"
 
 		# Execute scenario
 		echo "${env_config['id']} $scenario" >>"${EMULATION_DIR}/scenarios.txt"
@@ -465,6 +465,7 @@ function _osnd_run_scenarios() {
 	done < <(awk '!/^(#.*)?$/' "$scenario_file")
 }
 
+# _osnd_print_usage()
 function _osnd_print_usage() {
 	cat <<USAGE
 Usage: $1 [options]

@@ -24,16 +24,16 @@ function _osnd_ping_measure() {
 	return $status
 }
 
-# osnd_measure_ping(env_config_ref, output_dir, run_cnt=1)
+# osnd_measure_ping(scenario_config_ref, output_dir, run_cnt=1)
 # Run all ping measurements and place the results in output_dir.
 function osnd_measure_ping() {
-	local env_config_ref=$1
+	local scenario_config_ref=$1
 	local output_dir="$2"
 	local run_cnt=${3:-1}
 
 	for i in $(seq $run_cnt); do
 		log I "Ping run $i/$run_cnt"
-		osnd_setup $env_config_ref
+		osnd_setup $scenario_config_ref
 		sleep $MEASURE_WAIT
 		_osnd_ping_measure "$output_dir" $i
 		sleep $MEASURE_GRACE
@@ -52,7 +52,7 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 
 		echo "[$level] $msg"
 	}
-	declare -A env_config
+	declare -A scenario_config
 
 	export SCRIPT_VERSION="manual"
 	export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
@@ -61,8 +61,8 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 	set +a
 
 	if [[ "$@" ]]; then
-		osnd_measure_ping env_config "$@"
+		osnd_measure_ping scenario_config "$@"
 	else
-		osnd_measure_ping env_config "."
+		osnd_measure_ping scenario_config "."
 	fi
 fi
