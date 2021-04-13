@@ -458,8 +458,8 @@ function _osnd_run_scenarios() {
 		scenario_config['ubs_cl']="${ubuf_sizes[3]}"
 
 		# Execute scenario
-		echo "${env_config['id']} $scenario" >>"${EMULATION_DIR}/scenarios.txt"
-		_osnd_exec_scenario_with_config env_config
+		echo "${scenario_config['id']} $scenario" >>"${EMULATION_DIR}/scenarios.txt"
+		_osnd_exec_scenario_with_config scenario_config
 
 		sleep $MEASURE_WAIT
 	done < <(awk '!/^(#.*)?$/' "$scenario_file")
