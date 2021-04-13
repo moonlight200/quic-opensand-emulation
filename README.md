@@ -54,6 +54,7 @@ The following utilities need to be installed on the system:
 * curl
 * nginx (deamon can be disabled, is only used standalone)
 * iproute2
+* xmlstarlet
 
 # Usage
 
