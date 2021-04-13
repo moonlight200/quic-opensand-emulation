@@ -114,7 +114,7 @@ function osnd_setup_opensand() {
 	tmux -L ${TMUX_SOCKET} new-session -s opensand-sat -d "sudo ip netns exec osnd-sat bash"
 	sleep $TMUX_INIT_WAIT
 	tmux -L ${TMUX_SOCKET} send-keys -t opensand-sat "mount -o bind ${OSND_TMP}/config_sat /etc/opensand" Enter
-	tmux -L ${TMUX_SOCKET} send-keys -t opensand-sat "opensand-sat -a ${EMU_SAT_IP%%/*} -f /${OSND_TMP}/output_sat -c /etc/opensand" Enter
+	tmux -L ${TMUX_SOCKET} send-keys -t opensand-sat "opensand-sat -a ${EMU_SAT_IP%%/*} -f ${OSND_TMP}/output_sat -c /etc/opensand" Enter
 
 	# Start gateway
 	log D "Aligning the gateway's satellite dish"
@@ -122,7 +122,7 @@ function osnd_setup_opensand() {
 	tmux -L ${TMUX_SOCKET} new-session -s opensand-gw -d "sudo ip netns exec osnd-gw bash"
 	sleep $TMUX_INIT_WAIT
 	tmux -L ${TMUX_SOCKET} send-keys -t opensand-gw "mount -o bind ${OSND_TMP}/config_gw /etc/opensand" Enter
-	tmux -L ${TMUX_SOCKET} send-keys -t opensand-gw "opensand-gw -i 0 -a ${EMU_GW_IP%%/*} -t tap-gw -f /${OSND_TMP}/output_gw -c /etc/opensand" Enter
+	tmux -L ${TMUX_SOCKET} send-keys -t opensand-gw "opensand-gw -i 0 -a ${EMU_GW_IP%%/*} -t tap-gw -f ${OSND_TMP}/output_gw -c /etc/opensand" Enter
 
 	# Start satellite terminal
 	log D "Connecting the satellite terminal"
@@ -130,7 +130,7 @@ function osnd_setup_opensand() {
 	tmux -L ${TMUX_SOCKET} new-session -s opensand-st -d "sudo ip netns exec osnd-st bash"
 	sleep $TMUX_INIT_WAIT
 	tmux -L ${TMUX_SOCKET} send-keys -t opensand-st "mount -o bind ${OSND_TMP}/config_st /etc/opensand" Enter
-	tmux -L ${TMUX_SOCKET} send-keys -t opensand-st "opensand-st -i 1 -a ${EMU_ST_IP%%/*} -t tap-st -f /${OSND_TMP}/output_st -c /etc/opensand" Enter
+	tmux -L ${TMUX_SOCKET} send-keys -t opensand-st "opensand-st -i 1 -a ${EMU_ST_IP%%/*} -t tap-st -f ${OSND_TMP}/output_st -c /etc/opensand" Enter
 }
 
 # If script is executed directly
