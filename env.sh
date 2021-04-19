@@ -18,7 +18,7 @@ OPENSAND_CONFIGS="${SCRIPT_DIR}/config"
 # Nginx configuration
 NGINX_CONFIG="${SCRIPT_DIR}/config/nginx.conf"
 # Output directory for all emulations (one subdirectory per emulation will be created)
-RESULTS_DIR="$HOME/out/$(hostname)"
+RESULTS_DIR="$HOME/out"
 
 # Opensand network config
 
