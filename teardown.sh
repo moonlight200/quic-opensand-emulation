@@ -29,6 +29,9 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 
 	osnd_teardown "$@"
 
+	# Ensure all tmux sessions are closed
+	tmux -L ${TMUX_SOCKET} kill-server &>/dev/null
+
 	if [ -e "$OSND_TMP" ]; then
 		rm -rf "$OSND_TMP"
 	fi
