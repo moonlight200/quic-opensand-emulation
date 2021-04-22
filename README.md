@@ -19,6 +19,8 @@ the runs aim to measure the following set of performance values:
 * Connection Establishment Time
 * Time to First Byte
 
+For evaluation of the result you can use these scripts: [quic-opensand-evaluation](https://github.com/moonlight200/quic-opensand-evaluation)
+
 ### Script structure
 
 The main executable script is `opensand.sh` it will source all other scripts before
@@ -97,7 +99,7 @@ control parameters (V,W,X,Y,Z) apply to all scenarios.
 E.g. if orbits `-O GEO,MEO`, congestion controls
 `-C rrrr,cccc` and goodput measurements `-N 5` are configured, four different scenarios are executed.
 
-| Name | Argument   | Default | Description |
+| Name | Argument   | Description | Default |
 | ---- | ---------- | --- | --- |
 | `-A` | `<#,>`     | Comma separated list of attenuation values to measure | `0` |
 | `-B` | `<GT,>*`   | Comma separated list of two qperf transfer buffer sizes for gateway and terminal. Repeat parameter for multiple configurations | `1M,1M` |
