@@ -9,6 +9,10 @@ are executed to measure the performance of different protocols. Each measurement
 executed multiple times with each execution being called a run. This will generate
 more statistically stable results.
 
+[![Namespace Overview](res/network-namespace-opensand.png)](res/network-namespace-opensand.pdf)
+
+This is an overview of the environment that is create by the scripts using network namespaces.
+
 ### Measured performance values
 
 While the complete output of each component taking part in a measurement is captured,
