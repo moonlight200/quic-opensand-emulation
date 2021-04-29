@@ -71,7 +71,7 @@ function _osnd_configure_opensand_carriers() {
 	for entity in sat gw st; do
 		# Set forward down band to CCM (is actually a special case of VCM, see wiki)
 		# Remove premium return band
-		# Use full bandwidth remaining return band
+		# Use full bandwidth remaining on return band
 		xmlstarlet edit -L \
 			--update "//forward_down_band/spot[@id='1']/carriers_distribution/down_carriers/@access_type" --value "VCM" \
 			--update "//forward_down_band/spot[@id='1']/carriers_distribution/down_carriers/@fmt_group" --value "1" \

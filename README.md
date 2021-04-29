@@ -97,28 +97,31 @@ and cleanup the environment.
 ### Scenario configuration
 
 These parameters configure the scenarios that are executed. All combinations of
-all configured values are executed. The time parameters (N,P,T) and measurement
-control parameters (V,W,X,Y,Z) apply to all scenarios.
+all configured values are executed. Environment parameters (Type E) control the
+circumstance in which the measurements are performed. Transport parameters (Type T)
+affect the protocols that are measured. The combination of values for E and T parameters
+create a scenario. Measurement parameters (Type M) apply to all scenarios.
 
-E.g. if orbits `-O GEO,MEO`, congestion controls
-`-C rrrr,cccc` and goodput measurements `-N 5` are configured, four different scenarios are executed.
+E.g. if orbits `-O GEO,MEO` (Type E), congestion controls `-C rrrr,cccc` (Type T)
+and goodput measurements `-N 5` (Type M) are configured, four different scenarios are
+executed, each being measured 5 times.
 
-| Name | Argument   | Description | Default |
-| ---- | ---------- | --- | --- |
-| `-A` | `<#,>`     | Comma separated list of attenuation values to measure | `0` |
-| `-B` | `<GT,>*`   | Comma separated list of two qperf transfer buffer sizes for gateway and terminal. Repeat parameter for multiple configurations | `1M,1M` |
-| `-C` | `<SGTC,>`  | Comma separated list of four congestion control algorithms for server, gateway, terminal and client. (c = cubic, r = reno) | `rrrr` |
-| `-N` | `#`        | Number of runs per goodput measurement in a scenario | `1` |
-| `-O` | `<#,>`     | Comma separated list of orbits to measure (GEO,MEO,LEO) | `GEO` |
-| `-P` | `#`        | Number of seconds to prime a new environment with some pings | `5` |
-| `-Q` | `<SGTC,>*` | Comma separated list of four qperf quicly buffer sizes at server, gateway, terminal and client. Repeat parameter for multiple configurations | `1M,1M,1M,1M` |
-| `-T` | `#`        | Number of runs per timing measurement in a scenario | `4` |
-| `-U` | `<SGTC,>*` | Comma separated list of four qperf udp buffer sizes at server, gateway, terminal and client. Repeat parameter for multiple configurations | `1M,1M,1M,1M` |
-| `-V` |            | Disable plain (non pep) measurements | |
-| `-W` |            | Disable pep measurements | |
-| `-X` |            | Disable ping measurements | |
-| `-Y` |            | Disable quic measurements | |
-| `-Z` |            | Disable tcp measurements | |
+| Name | Argument   | Description | Default | Type |
+| ---- | ---------- | --- | --- | --- |
+| `-A` | `<#,>`     | Comma separated list of attenuation values to measure | `0` | E |
+| `-B` | `<GT,>*`   | Comma separated list of two qperf transfer buffer sizes for gateway and terminal. Repeat parameter for multiple configurations | `1M,1M` | T |
+| `-C` | `<SGTC,>`  | Comma separated list of four congestion control algorithms for server, gateway, terminal and client. (c = cubic, r = reno) | `rrrr` | T |
+| `-N` | `#`        | Number of runs per goodput measurement in a scenario | `1` | M |
+| `-O` | `<#,>`     | Comma separated list of orbits to measure (GEO,MEO,LEO) | `GEO` | E |
+| `-P` | `#`        | Number of seconds to prime a new environment with some pings | `5` | M |
+| `-Q` | `<SGTC,>*` | Comma separated list of four qperf quicly buffer sizes at server, gateway, terminal and client. Repeat parameter for multiple configurations | `1M,1M,1M,1M` | T |
+| `-T` | `#`        | Number of runs per timing measurement in a scenario | `4` | M |
+| `-U` | `<SGTC,>*` | Comma separated list of four qperf udp buffer sizes at server, gateway, terminal and client. Repeat parameter for multiple configurations | `1M,1M,1M,1M` | T |
+| `-V` |            | Disable plain (non pep) measurements | | M |
+| `-W` |            | Disable pep measurements | | M |
+| `-X` |            | Disable ping measurements | | M |
+| `-Y` |            | Disable quic measurements | | M |
+| `-Z` |            | Disable tcp measurements | | M |
 
 The command line arguments are used to generate a temporary scenario configuration
 file in the emulations temporary directory (`/tmp/opensand.*/`).
