@@ -50,8 +50,8 @@ function _osnd_prime_env() {
 	local seconds=$1
 
 	log D "Priming environment"
-	sudo timeout --foreground $((seconds + 1)) ip netns exec osnd-cl \
-		ping -n -W 8 -c $((seconds * 100)) -l 100 -i 0.01 ${SV_LAN_SERVER_IP%%/*} >/dev/null
+	sudo timeout --foreground $(echo "$seconds + 1" | bc -l) ip netns exec osnd-cl \
+		ping -n -W 8 -c $(echo "$seconds * 100" | bc -l) -l 100 -i 0.01 ${SV_LAN_SERVER_IP%%/*} >/dev/null
 }
 
 # osnd_setup(scenario_config_ref)
@@ -79,7 +79,7 @@ function osnd_setup() {
 	sleep 1
 	osnd_setup_opensand "$delay_sat" "$attenuation" "$modulation_id"
 	sleep 1
-	if [[ "$prime" -gt 0 ]]; then
+	if (( $(echo "$prime > 0" | bc -l) )); then
 		_osnd_prime_env $prime
 	fi
 
