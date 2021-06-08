@@ -54,10 +54,47 @@ function _osnd_prime_env() {
 		ping -n -W 8 -c $(echo "$seconds * 100" | bc -l) -l 100 -i 0.01 ${SV_LAN_SERVER_IP%%/*} >/dev/null
 }
 
+# _osnd_capture(output_dir, run_id, pep, capture_nr)
+# Start capturing packets
+function _osnd_capture() {
+	local output_dir="$1"
+	local run_id="$2"
+	local pep="$3"
+	local capture="$4"
+
+	log D "Starting tcpdump"
+
+	# Server
+	tmux -L ${TMUX_SOCKET} new-session -s tcpdump-sv -d "sudo ip netns exec osnd-sv bash"
+	sleep $TMUX_INIT_WAIT
+	tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-sv "tcpdump -i gw3 -s 65535 -c ${capture} -w '${output_dir}/${run_id}_dump_server_gw3.eth'" Enter
+
+	if [[ "$pep" == true ]]; then
+		# GW proxy
+		tmux -L ${TMUX_SOCKET} new-session -s tcpdump-gw -d "sudo ip netns exec osnd-gw bash"
+		sleep $TMUX_INIT_WAIT
+		tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-gw "tcpdump -i gw1 -s 65535 -c ${capture} -w '${output_dir}/${run_id}_dump_proxy_gw1.eth'" Enter
+
+		# ST proxy
+		tmux -L ${TMUX_SOCKET} new-session -s tcpdump-st -d "sudo ip netns exec osnd-st bash"
+		sleep $TMUX_INIT_WAIT
+		tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-st "tcpdump -i st1 -s 65535 -c ${capture} -w '${output_dir}/${run_id}_dump_proxy_st1.eth'" Enter
+	fi
+
+	# Client
+	tmux -L ${TMUX_SOCKET} new-session -s tcpdump-cl -d "sudo ip netns exec osnd-cl bash"
+	sleep $TMUX_INIT_WAIT
+	tmux -L ${TMUX_SOCKET} send-keys -t tcpdump-cl "tcpdump -i st3 -s 65535 -c ${capture} -w '${output_dir}/${run_id}_dump_client_st3.eth'" Enter
+}
+
 # osnd_setup(scenario_config_ref)
 # Setup the entire emulation environment.
 function osnd_setup() {
 	local -n scenario_config_ref="$1"
+	local output_dir="${2:-.}"
+	local run_id="${3:-manual}"
+	local pep="${4:-false}"
+
 	# Extract associative array with defaults
 	local cc_cl="${scenario_config_ref['cc_cl']:-reno}"
 	local cc_st="${scenario_config_ref['cc_st']:-reno}"
@@ -68,6 +105,7 @@ function osnd_setup() {
 	local orbit="${scenario_config_ref['orbit']:-GEO}"
 	local attenuation="${scenario_config_ref['attenuation']:-0}"
 	local modulation_id="${scenario_config_ref['modulation_id']:-1}"
+	local dump="${scenario_config_ref['dump']:-0}"
 
 	local delay_sat="$(_osnd_orbit_sat_delay "$orbit")"
 	local delay_ground="$(_osnd_orbit_ground_delay "$orbit")"
@@ -79,8 +117,12 @@ function osnd_setup() {
 	sleep 1
 	osnd_setup_opensand "$delay_sat" "$attenuation" "$modulation_id"
 	sleep 1
-	if (( $(echo "$prime > 0" | bc -l) )); then
+	if (($(echo "$prime > 0" | bc -l))); then
 		_osnd_prime_env $prime
+	fi
+
+	if [ "$dump" -gt 0 ]; then
+		_osnd_capture "$output_dir" "$run_id" "$pep" "$dump"
 	fi
 
 	log D "Environment set up"

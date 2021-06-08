@@ -8,7 +8,7 @@ function _osnd_ping_measure() {
 	local timeout=110
 
 	log I "Running ping"
-	sudo timeout --foreground $timeout ip netns exec osnd-cl ping -n -W 8 -c 10000 -l 100 -i 0.01 ${SV_LAN_SERVER_IP%%/*} >"${output_dir}/ping.txt"
+	sudo timeout --foreground $timeout ip netns exec osnd-cl ping -n -W 8 -c 10000 -l 100 -i 0.01 ${SV_LAN_SERVER_IP%%/*} >"${output_dir}/$run_id.txt"
 	local status=$?
 
 	# Check for error, report if any
@@ -33,9 +33,11 @@ function osnd_measure_ping() {
 
 	for i in $(seq $run_cnt); do
 		log I "Ping run $i/$run_cnt"
-		osnd_setup $scenario_config_ref
+		local run_id="ping_$i"
+
+		osnd_setup $scenario_config_ref "$output_dir" "$run_id" "false"
 		sleep $MEASURE_WAIT
-		_osnd_ping_measure "$output_dir" $i
+		_osnd_ping_measure "$output_dir" "$run_id"
 		sleep $MEASURE_GRACE
 		osnd_teardown
 		sleep $RUN_WAIT

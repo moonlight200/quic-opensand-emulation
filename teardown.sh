@@ -1,11 +1,37 @@
 #!/bin/bash
 
+
+# _osnd_teardown_capture()
+# Stop capturing packets
+function _osnd_teardown_capture() {
+	local logged=false
+
+	for entity in cl st gw sv; do
+		local session="tcpdump-${entity}"
+		tmux -L ${TMUX_SOCKET} has-session -t ${session} >/dev/null 2>&1
+		if [ "$?" -gt 0 ]; then
+			if [[ "$logged" == false ]]; then
+				log D "Stopping tcpdump"
+				logged=true
+			fi
+
+			log D "Stopping $session"
+			tmux -L ${TMUX_SOCKET} send-keys -t ${session} C-c
+			sleep $CMD_SHUTDOWN_WAIT
+			tmux -L ${TMUX_SOCKET} send-keys -t ${session} C-d
+			sleep $CMD_SHUTDOWN_WAIT
+			tmux -L ${TMUX_SOCKET} kill-session -t ${session} >/dev/null 2>&1
+		fi
+	done
+}
+
 # osnd_teardown()
 # Teardown the entire emulation environment.
 function osnd_teardown() {
 	log I "Tearing down emulation environment"
 	osnd_teardown_opensand
 	sleep $CMD_SHUTDOWN_WAIT
+	_osnd_teardown_capture
 	osnd_teardown_namespaces
 	log D "Environment teared down"
 }

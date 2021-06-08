@@ -3,7 +3,7 @@ set -o nounset
 set -o errtrace
 set -o functrace
 
-export SCRIPT_VERSION="1.5.3"
+export SCRIPT_VERSION="1.5.4"
 export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 set -o allexport
@@ -197,7 +197,7 @@ function _osnd_generate_scenarios() {
 	scenario_file="$OSND_TMP/scenarios"
 	echo "# Scenario config generated at $(date)" >"$scenario_file"
 
-	local common_options="-N ${run_cnt} -T ${ttfb_run_cnt} -P ${env_prime_secs}"
+	local common_options="-N ${run_cnt} -T ${ttfb_run_cnt} -P ${env_prime_secs} -D ${dump_packets}"
 	if [[ "$exec_plain" != "true" ]]; then
 		common_options="$common_options -V"
 	fi
@@ -240,7 +240,7 @@ function _osnd_read_scenario() {
 	local -n config_ref="$1"
 	local scenario="$2"
 
-	local parsed_scenario_args=$(getopt -n "opensand scenario" -o "A:B:C:M:N:O:P:Q:T:U:VWXYZ" -l "attenuation:,transport-buffers:,congestion-control:,modulation:,runs:,orbits:,prime:,quicly-buffers:,timing-runs:,udp-buffers:,disable-plain,disable-pep,disable-ping,disable-quic,disable-tcp" -- $scenario)
+	local parsed_scenario_args=$(getopt -n "opensand scenario" -o "A:B:C:D:M:N:O:P:Q:T:U:VWXYZ" -l "attenuation:,transport-buffers:,congestion-control:,dump:,modulation:,runs:,orbits:,prime:,quicly-buffers:,timing-runs:,udp-buffers:,disable-plain,disable-pep,disable-ping,disable-quic,disable-tcp" -- $scenario)
 	local parsing_status=$?
 	if [ "$parsing_status" != "0" ]; then
 		return 1
@@ -260,6 +260,10 @@ function _osnd_read_scenario() {
 			;;
 		-C | --congestion-control)
 			config_ref['ccs']="$2"
+			shift 2
+			;;
+		-D | --dump)
+			config_ref['dump']="$2"
 			shift 2
 			;;
 		-M | --modulation)
@@ -414,6 +418,7 @@ function _osnd_run_scenarios() {
 		scenario_config['prime']=5
 		scenario_config['runs']=1
 		scenario_config['timing_runs']=4
+		scenario_config['dump']=0
 
 		scenario_config['orbit']="GEO"
 		scenario_config['attenuation']=0
@@ -481,6 +486,7 @@ Scenario configuration:
   -A <#,>    csl of attenuations to measure (default: 0db)
   -B <#,>*   csl of two qperf transfer buffer sizes for G and T (default: 1M)
   -C <SGTC,> csl of congestion control algorithms to measure (c = cubic, r = reno) (default: r)
+  -D #       dump the first # packets of a measurement
   -N #       number of goodput measurements per config (default: 1)
   -O <#,>    csl of orbits to measure (GEO|MEO|LEO) (default: GEO)
   -P #       seconds to prime a new environment with some pings (default: 5)
@@ -519,12 +525,13 @@ function _osnd_parse_args() {
 	exec_quic=true
 	exec_tcp=true
 	scenario_file=""
+	dump_packets=0
 
 	local -a new_transfer_buffer_sizes=()
 	local -a new_quicly_buffer_sizes=()
 	local -a new_udp_buffer_sizes=()
 	local measure_cli_args="false"
-	while getopts ":f:hst:vA:B:C:N:O:P:Q:T:U:VWXYZ" opt; do
+	while getopts ":f:hst:vA:B:C:D:N:O:P:Q:T:U:VWXYZ" opt; do
 		if [[ "${opt^^}" == "$opt" ]]; then
 			measure_cli_args="true"
 			if [[ "$scenario_file" != "" ]]; then
@@ -580,6 +587,14 @@ function _osnd_parse_args() {
 					fi
 				done
 			done
+			;;
+		D)
+			if [[ "$OPTARG" =~ ^[0-9]+$ ]]; then
+				dump_packets=$OPTARG
+			else
+				echo "Invalid integer value for -D"
+				exit 1
+			fi
 			;;
 		N)
 			if [[ "$OPTARG" =~ ^[0-9]+$ ]]; then

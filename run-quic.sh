@@ -151,7 +151,7 @@ function _osnd_measure_quic() {
 		local run_id="${base_run_id}_$i"
 
 		# Environment
-		osnd_setup $scenario_config_name
+		osnd_setup $scenario_config_name "$output_dir" "$run_id" "$pep"
 		sleep $MEASURE_WAIT
 
 		# Server
